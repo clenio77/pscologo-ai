@@ -1,0 +1,11 @@
+flask
+SpeechRecognition
+pydub
+google-genai
+python-dotenv
+flask-cors
+flask-sqlalchemy
+flask-migrate
+PyJWT
+psycopg2-binary==2.9.9
+supabase

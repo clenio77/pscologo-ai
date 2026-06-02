@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: pscologo_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-pscologo}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: pscologo_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-pscologo}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-super-secret-key-prod}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      - db
+    volumes:
+      - backend_uploads:/app/uploads
+
+  frontend:
+    build: ./frontend
+    container_name: pscologo_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_uploads:

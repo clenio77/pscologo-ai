@@ -1,0 +1,159 @@
+# ROTAS DE AUTENTICAÇÃO E CADASTROS
+
+@app.route("/cadastro", methods=["POST"])
+def cadastro():
+    data = request.get_json()
+    nome = data.get("nome")
+    email = data.get("email")
+    senha = data.get("senha")
+    tipo = data.get("tipo") # 'psicologo' ou 'paciente'
+    psicologo_id = data.get("psicologo_id") # Opcional se for paciente
+
+    if not nome or not email or not senha or not tipo:
+        return jsonify({"erro": "Dados obrigatórios ausentes"}), 400
+
+    if tipo not in ["psicologo", "paciente"]:
+        return jsonify({"erro": "Tipo de usuário inválido"}), 400
+
+    # Validação de E-mail
+    email_regex = r"^[\w\.\+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$"
+    if not re.match(email_regex, email):
+        return jsonify({"erro": "Formato de e-mail inválido"}), 400
+
+    # Validação de Força de Senha
+    if len(senha) < 8 or not any(char.isdigit() for char in senha) or not any(not char.isalnum() for char in senha):
+        return jsonify({"erro": "A senha deve ter pelo menos 8 caracteres, contendo 1 número e 1 caractere especial"}), 400
+
+    if Usuario.query.filter_by(email=email).first():
+        return jsonify({"erro": "E-mail já cadastrado"}), 409
+
+    senha_hash = generate_password_hash(senha)
+    
+    try:
+        novo_usuario = Usuario(
+            nome=nome,
+            email=email,
+            senha_hash=senha_hash,
+            tipo=tipo
+        )
+        db.session.add(novo_usuario)
+        db.session.flush() # Gerar o ID do novo usuário
+
+        if tipo == "paciente":
+            novo_paciente = Paciente(
+                usuario_id=novo_usuario.id,
+                psicologo_id=psicologo_id
+            )
+            db.session.add(novo_paciente)
+
+        db.session.commit()
+        return jsonify({"sucesso": True, "mensagem": "Usuário cadastrado com sucesso"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"erro": f"Erro ao criar usuário: {str(e)}"}), 500
+
+@app.route("/psicologo/cadastrar-paciente", methods=["POST"])
+@token_requerido
+def psicologo_cadastrar_paciente(usuario_atual):
+    if usuario_atual.tipo != "psicologo":
+        return jsonify({"erro": "Apenas psicólogos podem cadastrar pacientes"}), 403
+        
+    data = request.get_json()
+    nome = data.get("nome")
+    email = data.get("email")
+    senha = data.get("senha")
+    
+    if not nome or not email or not senha:
+        return jsonify({"erro": "Dados obrigatórios ausentes"}), 400
+        
+    if Usuario.query.filter_by(email=email).first():
+        return jsonify({"erro": "E-mail de paciente já cadastrado"}), 409
+        
+    senha_hash = generate_password_hash(senha)
+    
+    try:
+        novo_usuario = Usuario(
+            nome=nome,
+            email=email,
+            senha_hash=senha_hash,
+            tipo="paciente"
+        )
+        db.session.add(novo_usuario)
+        db.session.flush()
+        
+        novo_paciente = Paciente(
+            usuario_id=novo_usuario.id,
+            psicologo_id=usuario_atual.id
+        )
+        db.session.add(novo_paciente)
+        db.session.commit()
+        
+        return jsonify({"sucesso": True, "mensagem": "Paciente cadastrado e vinculado com sucesso"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"erro": str(e)}), 500
+
+@app.route("/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    email = data.get("email")
+    senha = data.get("senha")
+
+    if not email or not senha:
+        return jsonify({"erro": "E-mail e senha são obrigatórios"}), 400
+
+    usuario = Usuario.query.filter_by(email=email).first()
+
+    if not usuario or not check_password_hash(usuario.senha_hash, senha):
+        return jsonify({"erro": "E-mail ou senha incorretos"}), 401
+
+    token = jwt.encode({
+        "id": usuario.id,
+        "tipo": usuario.tipo,
+        "exp": datetime.utcnow() + timedelta(hours=24)
+    }, app.config['SECRET_KEY'], algorithm="HS256")
+
+    response_data = {
+        "token": token,
+        "nome": usuario.nome,
+        "email": usuario.email,
+        "tipo": usuario.tipo,
+        "id": usuario.id
+    }
+
+    # Se for paciente, inclui o ID do psicólogo associado
+    if usuario.tipo == "paciente":
+        paciente = Paciente.query.filter_by(usuario_id=usuario.id).first()
+        if paciente:
+            response_data["psicologo_id"] = paciente.psicologo_id
+
+    return jsonify(response_data)
+
+@app.route("/psicologos", methods=["GET"])
+def get_psicologos():
+    psicologos = Usuario.query.filter_by(tipo="psicologo").all()
+    lista = [{"id": p.id, "nome": p.nome, "email": p.email} for p in psicologos]
+    return jsonify(lista)
+
+@app.route("/pacientes", methods=["GET"])
+@token_requerido
+def get_pacientes(usuario_atual):
+    if usuario_atual.tipo != "psicologo":
+        return jsonify({"erro": "Apenas psicólogos podem acessar a lista de pacientes"}), 403
+
+    pacientes_relacionados = Paciente.query.filter_by(psicologo_id=usuario_atual.id).all()
+    lista = []
+    for p in pacientes_relacionados:
+        usuario_paciente = Usuario.query.get(p.usuario_id)
+        if usuario_paciente:
+            # Pegar última sessão de desabafo (se houver)
+            ultima_sessao = Sessao.query.filter_by(paciente_id=usuario_paciente.id).order_by(Sessao.data_criacao.desc()).first()
+            lista.append({
+                "id": usuario_paciente.id,
+                "nome": usuario_paciente.nome,
+                "email": usuario_paciente.email,
+                "ultima_atividade": ultima_sessao.data_criacao.strftime("%d/%m/%Y %H:%M") if ultima_sessao else "Nenhuma atividade"
+            })
+    return jsonify(lista)
+
+# ROTAS DA APLICAÇÃO CLÍNICA

@@ -1,0 +1,1 @@
+node_modules/\nbuild/\nvenv/\n__pycache__/\n*.db\n.env\nuploads/

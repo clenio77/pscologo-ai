@@ -1,0 +1,1607 @@
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import Fuse from 'fuse.js';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  MessageSquare,
+  Search,
+  History,
+  Mic,
+  Square,
+  Play,
+  Sparkles,
+  Trash2,
+  Calendar,
+  ChevronRight,
+  Wind,
+  BarChart3,
+  X,
+  LayoutDashboard,
+  LogOut,
+  ArrowLeft,
+  User,
+  ClipboardList,
+  Plus
+} from 'lucide-react';
+
+import FinanceiroView from './components/FinanceiroView';
+import DiarioEmocionalView from './components/DiarioEmocionalView';
+import TarefasClinicasView from './components/TarefasClinicasView';
+import PlanoTerapeuticoView from './components/PlanoTerapeuticoView';
+import AvaliacoesView from './components/AvaliacoesView';
+import AnamneseView from './components/AnamneseView';
+import ProntuarioIAView from './components/ProntuarioIAView';
+import AgendaView from './components/AgendaView';
+import DashboardView from './components/DashboardView';
+import LoginView from './components/LoginView';
+import './index.css';
+
+const API_BASE_URL = 'http://localhost:5000';
+
+function App() {
+  // Autenticação e Perfis
+  const [usuario, setUsuario] = useState(() => {
+    const saved = localStorage.getItem('usuario');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Estados do Chat e Histórico (Paciente)
+  const [gravando, setGravando] = useState(false);
+  const [transcricao, setTranscricao] = useState('');
+  const [exercicio, setExercicio] = useState('');
+  const [carregando, setCarregando] = useState(false);
+  const [historico, setHistorico] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sessaoAtiva, setSessaoAtiva] = useState(null);
+  const [currentView, setCurrentView] = useState('app'); // 'app', 'dashboard', 'agenda', 'financeiro', 'prontuario'
+  const [showSOS, setShowSOS] = useState(false);
+  const [breathingStep, setBreathingStep] = useState('Inspire');
+  const [falando, setFalando] = useState(false);
+
+  // Estados do Psicólogo
+  const [listaPacientes, setListaPacientes] = useState([]);
+  const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
+  
+  // Cadastro de Paciente pelo Psicólogo
+  const [showNovoPacienteForm, setShowNovoPacienteForm] = useState(false);
+  const [novoPacNome, setNovoPacNome] = useState('');
+  const [novoPacEmail, setNovoPacEmail] = useState('');
+  const [novoPacSenha, setNovoPacSenha] = useState('');
+
+  // Estados para Financeiro (Fase 4)
+  const [financeiroData, setFinanceiroData] = useState({ lancamentos: [], resumo: { total_receitas: 0, total_despesas: 0, lucro_liquido: 0 } });
+  const [listaPacotes, setListaPacotes] = useState([]);
+
+  // Notas Clínicas do Psicólogo
+  const [listaNotas, setListaNotas] = useState([]);
+  const [novaNotaConteudo, setNovaNotaConteudo] = useState('');
+  const [carregandoNotas, setCarregandoNotas] = useState(false);
+  const [abordagemSelecionada, setAbordagemSelecionada] = useState('padrao');
+
+  // Insights IA de Risco (Novo)
+  const [insightsIA, setInsightsIA] = useState({ alertas: [], foco: '', humor_trend: '' });
+  const [carregandoInsights, setCarregandoInsights] = useState(false);
+
+  // Tarefas Clínicas / Lições de Casa (Novo)
+  const [listaTarefas, setListaTarefas] = useState([]);
+  const [carregandoTarefas, setCarregandoTarefas] = useState(false);
+
+
+  // Anamnese Clínica (Primeira Consulta)
+  const [anamneseData, setAnamneseData] = useState({
+    queixa_principal: '',
+    historico_sintomas: '',
+    historico_familiar: '',
+    historico_medico: '',
+    relacionamentos_sociais: '',
+    expectativas_terapia: '',
+    observacoes_gerais: ''
+  });
+  const [carregandoAnamnese, setCarregandoAnamnese] = useState(false);
+  const [salvandoAnamnese, setSalvandoAnamnese] = useState(false);
+
+  // Avaliações Psicométricas
+  const [listaAvaliacoes, setListaAvaliacoes] = useState([]);
+  const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
+  const [novaAvaliacaoTipo, setNovaAvaliacaoTipo] = useState('PHQ-9');
+  const [respostasAvaliacao, setRespostasAvaliacao] = useState({});
+  
+  // TCLE
+  const [tcleAssinado, setTcleAssinado] = useState(true);
+  const [dataAssinaturaTcle, setDataAssinaturaTcle] = useState(null);
+  const [carregandoTcle, setCarregandoTcle] = useState(false);
+
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioContextRef = useRef(null);
+
+  // Carregar dados gerais ao iniciar
+  useEffect(() => {
+    if (usuario) {
+      fetchFinanceiro();
+      if (usuario.tipo === 'paciente') {
+        fetchHistorico();
+        fetchPacotes();
+        fetchTarefas(usuario.id);
+        fetchTCLE(usuario.id);
+      } else if (usuario.tipo === 'psicologo') {
+        fetchPacientes();
+      }
+    }
+  }, [usuario]);
+
+  // Carregar histórico, pacotes e prontuário IA do paciente selecionado
+  useEffect(() => {
+    if (usuario && usuario.tipo === 'psicologo' && pacienteSelecionado) {
+      fetchHistorico(pacienteSelecionado.id);
+      fetchPacotes(pacienteSelecionado.id);
+      fetchNotas(pacienteSelecionado.id);
+      fetchInsights(pacienteSelecionado.id);
+      fetchTarefas(pacienteSelecionado.id);
+      fetchAnamnese(pacienteSelecionado.id);
+    } else {
+      setHistorico([]);
+      setListaNotas([]);
+      setListaTarefas([]);
+      setInsightsIA({ alertas: [], foco: '', humor_trend: '' });
+      setAnamneseData({
+        queixa_principal: '',
+        historico_sintomas: '',
+        historico_familiar: '',
+        historico_medico: '',
+        relacionamentos_sociais: '',
+        expectativas_terapia: '',
+        observacoes_gerais: ''
+      });
+      setListaAvaliacoes([]);
+      setRespostasAvaliacao({});
+    }
+    setSessaoAtiva(null);
+    setTranscricao('');
+    setExercicio('');
+    setCurrentView('app'); // Reseta a aba interna ao trocar paciente
+    setShowNovoPacienteForm(false); // Fecha cadastro se abrir paciente
+  }, [pacienteSelecionado, usuario]);
+
+  // Fetch Handlers
+
+  const handlePsicologoCadastrarPaciente = async (e) => {
+    e.preventDefault();
+    try {
+      const resp = await fetch(`${API_BASE_URL}/cadastro`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: novoPacNome,
+          email: novoPacEmail,
+          senha: novoPacSenha,
+          tipo: 'paciente',
+          psicologo_id: usuario.id
+        })
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        alert("Paciente cadastrado com sucesso!");
+        setNovoPacNome('');
+        setNovoPacEmail('');
+        setNovoPacSenha('');
+        setShowNovoPacienteForm(false);
+        fetchPacientes();
+      } else {
+        alert(data.erro || "Erro ao cadastrar paciente");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Erro de conexão");
+    }
+  };
+
+  const fetchHistorico = async (pacienteId = null) => {
+    if (!usuario) return;
+    try {
+      let url = `${API_BASE_URL}/historico`;
+      if (usuario.tipo === 'psicologo' && pacienteId) {
+        url += `?paciente_id=${pacienteId}`;
+      }
+
+      const resp = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+
+      if (resp.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      const data = await resp.json();
+      setHistorico(data.map(item => ({
+        ...item,
+        sentimento: item.sentimento || 'Neutro'
+      })));
+    } catch (err) {
+      console.error("Erro ao carregar histórico:", err);
+    }
+  };
+
+  const fetchPacientes = async () => {
+    if (!usuario || usuario.tipo !== 'psicologo') return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/pacientes`, {
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+      if (resp.status === 401) return;
+      const data = await resp.json();
+      setListaPacientes(data);
+    } catch (err) {
+      console.error("Erro ao carregar pacientes:", err);
+    }
+  };
+
+  const fetchFinanceiro = async () => {
+    if (!usuario || usuario.tipo !== 'psicologo') return;
+    try {
+      const resp = await fetch(`${API_BASE_URL}/financeiro`, {
+        headers: { 'Authorization': `Bearer ${usuario.token}` }
+      });
+      if (resp.status === 401) return;
+      const data = await resp.json();
+      setFinanceiroData(data);
+    } catch (err) {
+      console.error("Erro ao buscar financeiro:", err);
+    }
+  };
+
+  const fetchPacotes = async (pacienteId = null) => {
+    if (!usuario) return;
+    try {
+      let url = `${API_BASE_URL}/pacotes`;
+      if (usuario.tipo === 'psicologo' && pacienteId) {
+        url += `?paciente_id=${pacienteId}`;
+      }
+      const resp = await fetch(url, {
+        headers: { 'Authorization': `Bearer ${usuario.token}` }
+      });
+      if (resp.status === 401) return;
+      const data = await resp.json();
+      setListaPacotes(data);
+    } catch (err) {
+      console.error("Erro ao buscar pacotes:", err);
+    }
+  };
+
+  const fetchTCLE = async (pacienteId) => {
+    // TODO: Connect to actual backend route if needed
+    setTcleAssinado(true);
+  };
+
+  const fetchDiario = async () => {
+    // DiarioEmocionalView handles its own fetching
+  };
+
+  const fetchNotas = async (pacienteId) => {
+    if (!usuario || usuario.tipo !== 'psicologo' || !pacienteId) return;
+    setCarregandoNotas(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/notas`, {
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+      if (resp.status === 401) {
+        handleLogout();
+        return;
+      }
+      const data = await resp.json();
+      if (resp.ok) {
+        setListaNotas(data);
+      } else {
+        console.error("Erro ao buscar notas:", data.erro);
+      }
+    } catch (err) {
+      console.error("Erro de conexão ao buscar notas:", err);
+    } finally {
+      setCarregandoNotas(false);
+    }
+  };
+
+  const handleAdicionarNota = async (e) => {
+    e.preventDefault();
+    if (!usuario || usuario.tipo !== 'psicologo' || !pacienteSelecionado || !novaNotaConteudo.trim()) return;
+    
+    try {
+      const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteSelecionado.id}/notas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${usuario.token}`
+        },
+        body: JSON.stringify({ conteudo: novaNotaConteudo })
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        setListaNotas([data.nota, ...listaNotas]);
+        setNovaNotaConteudo('');
+      } else {
+        alert(data.erro || "Erro ao adicionar nota");
+      }
+    } catch (err) {
+      console.error("Erro de conexão ao criar nota:", err);
+      alert("Erro ao conectar com o servidor.");
+    }
+  };
+
+  const handleRemoverNota = async (notaId) => {
+    if (!usuario || usuario.tipo !== 'psicologo' || !window.confirm("Deseja realmente excluir esta nota? Ela não fará mais parte do prontuário inteligente.")) return;
+    
+    try {
+      const resp = await fetch(`${API_BASE_URL}/notas/${notaId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        setListaNotas(listaNotas.filter(n => n.id !== notaId));
+      } else {
+        alert(data.erro || "Erro ao excluir nota");
+      }
+    } catch (err) {
+      console.error("Erro de conexão ao remover nota:", err);
+      alert("Erro ao conectar com o servidor.");
+    }
+  };
+
+  const fetchInsights = async (pacienteId) => {
+    if (!usuario || usuario.tipo !== 'psicologo' || !pacienteId) return;
+    setCarregandoInsights(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/insights`, {
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+      if (resp.status === 401) {
+        handleLogout();
+        return;
+      }
+      const data = await resp.json();
+      setInsightsIA(data);
+    } catch (err) {
+      console.error("Erro ao buscar insights IA:", err);
+    } finally {
+      setCarregandoInsights(false);
+    }
+  };
+
+  const fetchTarefas = async (pacienteId) => {
+    if (!usuario || !pacienteId) return;
+    setCarregandoTarefas(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/tarefas`, {
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+      if (resp.status === 401) {
+        handleLogout();
+        return;
+      }
+      const data = await resp.json();
+      if (resp.ok) {
+        setListaTarefas(data);
+      } else {
+        console.error("Erro ao buscar tarefas:", data.erro);
+      }
+    } catch (err) {
+      console.error("Erro de conexão ao buscar tarefas:", err);
+    } finally {
+      setCarregandoTarefas(false);
+    }
+  };
+
+  const fetchAnamnese = async (pacienteId) => {
+    if (!usuario || usuario.tipo !== 'psicologo' || !pacienteId) return;
+    setCarregandoAnamnese(true);
+    try {
+      const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/anamnese`, {
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+      if (resp.status === 401) {
+        handleLogout();
+        return;
+      }
+      const data = await resp.json();
+      if (resp.ok) {
+        setAnamneseData(data);
+      } else {
+        console.error("Erro ao buscar anamnese:", data.erro);
+      }
+    } catch (err) {
+      console.error("Erro de conexão ao buscar anamnese:", err);
+    } finally {
+      setCarregandoAnamnese(false);
+    }
+  };
+
+  const handleSalvarAnamnese = async (e) => {
+    e.preventDefault();
+    if (!usuario || usuario.tipo !== 'psicologo' || !pacienteSelecionado) return;
+    setSalvandoAnamnese(true);
+    
+    try {
+      const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteSelecionado.id}/anamnese`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${usuario.token}`
+        },
+        body: JSON.stringify(anamneseData)
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        setAnamneseData({
+          ...anamneseData,
+          data_atualizacao: data.data_atualizacao
+        });
+        alert(data.mensagem || "Anamnese salva com sucesso!");
+        fetchInsights(pacienteSelecionado.id);
+      } else {
+        alert(data.erro || "Erro ao salvar anamnese");
+      }
+    } catch (err) {
+      console.error("Erro ao salvar anamnese:", err);
+      alert("Erro ao conectar com o servidor.");
+    } finally {
+      setSalvandoAnamnese(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('usuario');
+    setUsuario(null);
+    setHistorico([]);
+    setListaPacientes([]);
+    setListaConsultas([]);
+    setFinanceiroData({ lancamentos: [], resumo: { total_receitas: 0, total_despesas: 0, lucro_liquido: 0 } });
+    setListaPacotes([]);
+    setPacienteSelecionado(null);
+    setSessaoAtiva(null);
+    setTranscricao('');
+    setExercicio('');
+    setCurrentView('app');
+    window.speechSynthesis.cancel();
+    setFalando(false);
+    setInsightsIA({ alertas: [], foco: null });
+    setListaTarefas([]);
+    setAnamneseData({});
+    setListaAvaliacoes([]);
+    setTcleAssinado(true);
+  };
+
+  // Animação de respiração e Som binaural 432Hz
+  useEffect(() => {
+    if (!showSOS) {
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => { });
+        audioContextRef.current = null;
+      }
+      return;
+    }
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioContext();
+    audioContextRef.current = ctx;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + 2);
+    masterGain.connect(ctx.destination);
+
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(432, ctx.currentTime);
+
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(433.5, ctx.currentTime);
+
+    osc1.connect(masterGain);
+    osc2.connect(masterGain);
+
+    osc1.start();
+    osc2.start();
+
+    const steps = ['Inspire', 'Segure', 'Expire', 'Segure'];
+    let idx = 0;
+    const interval = setInterval(() => {
+      idx = (idx + 1) % steps.length;
+      setBreathingStep(steps[idx]);
+    }, 4000);
+
+    return () => {
+      clearInterval(interval);
+      if (ctx.state !== 'closed') {
+        masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+        setTimeout(() => ctx.close().catch(() => { }), 1100);
+      }
+    };
+  }, [showSOS]);
+
+  // TTS de Voz
+  useEffect(() => {
+    const carregarVozes = () => window.speechSynthesis.getVoices();
+    carregarVozes();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = carregarVozes;
+    }
+  }, []);
+
+  const falar = (texto) => {
+    if (!texto || !('speechSynthesis' in window)) return;
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
+
+    const mensagemPura = texto
+      .replace(/SENTIMENTO:.*?\n/g, '')
+      .replace(/ABORDAGEM:/g, 'Abordagem teórica sugerida: ')
+      .replace(/LAUDO:/g, 'Laudo de acompanhamento: ')
+      .replace(/MAPA:/g, 'Mapa de sensibilidade: ')
+      .replace(/ORIENTACAO:/g, 'Orientação técnica: ')
+      .replace(/SESSAO:/g, 'Pauta para a próxima sessão: ')
+      .replace(/[*#=_\-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const chunks = mensagemPura.match(/.{1,200}(?:\s|$)/g) || [mensagemPura];
+    let currentChunk = 0;
+
+    const speakNextChunk = () => {
+      if (currentChunk >= chunks.length) {
+        setFalando(false);
+        return;
+      }
+
+      const locutor = new SpeechSynthesisUtterance(chunks[currentChunk]);
+      const vozes = window.speechSynthesis.getVoices();
+
+      const vozCalma = vozes.find(v => v.name.includes('Natural') && v.lang.includes('pt-BR')) ||
+        vozes.find(v => v.name.includes('Neural') && v.lang.includes('pt-BR')) ||
+        vozes.find(v => v.name.includes('Google') && v.lang.includes('pt-BR')) ||
+        vozes.find(v => v.lang.includes('pt-BR'));
+
+      if (vozCalma) locutor.voice = vozCalma;
+      locutor.lang = 'pt-BR';
+      locutor.rate = 1.0;
+      locutor.pitch = 0.75;
+      locutor.volume = 0.9;
+
+      locutor.onstart = () => {
+        setFalando(true);
+      };
+
+      locutor.onend = () => {
+        currentChunk++;
+        setTimeout(speakNextChunk, 500);
+      };
+
+      locutor.onerror = () => setFalando(false);
+      window.speechSynthesis.speak(locutor);
+    };
+
+    speakNextChunk();
+  };
+
+  const pararDeFalar = () => {
+    window.speechSynthesis.cancel();
+    setFalando(false);
+  };
+
+  const SOSOverlay = () => (
+    <motion.div className="sos-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <button className="close-sos" onClick={() => setShowSOS(false)}><X size={24} /></button>
+      <div className="breathing-container">
+        <motion.div className="breathing-circle" animate={{ scale: breathingStep === 'Inspire' || breathingStep === 'Segure' ? 1.5 : 1 }} transition={{ duration: 4, ease: "easeInOut" }}>
+          <Wind size={64} className="breathe-icon" />
+        </motion.div>
+        <h2 className="breathing-text">{breathingStep}</h2>
+        <p style={{ opacity: 0.6 }}>Respire fundo, isso vai passar.</p>
+      </div>
+    </motion.div>
+  );
+
+  const deleteSessao = async (e, id) => {
+    e.stopPropagation();
+    if (!window.confirm("Deseja apagar este registro do histórico?")) return;
+
+    try {
+      const resp = await fetch(`${API_BASE_URL}/sessao/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${usuario.token}`
+        }
+      });
+
+      if (resp.status === 401) {
+        handleLogout();
+        return;
+      }
+
+      fetchHistorico(pacienteSelecionado ? pacienteSelecionado.id : null);
+      if (sessaoAtiva?.id === id) {
+        setTranscricao('');
+        setExercicio('');
+        setSessaoAtiva(null);
+      }
+    } catch (err) {
+      console.error("Erro ao deletar:", err);
+    }
+  };
+
+  const filteredHistorico = useMemo(() => {
+    if (!searchTerm) return historico;
+    const fuse = new Fuse(historico, {
+      keys: ['transcricao', 'exercicio', 'sentimento'],
+      threshold: 0.4
+    });
+    return fuse.search(searchTerm).map(result => result.item);
+  }, [historico, searchTerm]);
+
+  const iniciarGravacao = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new window.MediaRecorder(stream);
+      audioChunksRef.current = [];
+      mediaRecorderRef.current = mediaRecorder;
+
+      mediaRecorder.ondataavailable = (e) => audioChunksRef.current.push(e.data);
+
+      mediaRecorder.onstop = async () => {
+        setCarregando(true);
+        const audioBlob = new Blob(audioChunksRef.current);
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'sessao.mp3');
+
+        try {
+          const resposta = await fetch(`${API_BASE_URL}/transcribe`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${usuario.token}`
+            },
+            body: formData
+          });
+
+          if (resposta.status === 401) {
+            handleLogout();
+            return;
+          }
+
+          const dados = await resposta.json();
+          setTranscricao(dados.transcricao);
+
+          const respostaExercicio = await fetch(`${API_BASE_URL}/sugerir-exercicio`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${usuario.token}`
+            },
+            body: JSON.stringify({
+              transcricao: dados.transcricao,
+              contexto_anterior: exercicio
+            })
+          });
+
+          if (respostaExercicio.status === 401) {
+            handleLogout();
+            return;
+          }
+
+          const exercicioData = await respostaExercicio.json();
+          setExercicio(exercicioData.exercicio);
+
+          falar(exercicioData.exercicio);
+          fetchHistorico();
+        } catch (error) {
+          console.error("Erro ao processar áudio:", error);
+          setTranscricao("Erro na conexão com o assistente.");
+        } finally {
+          setCarregando(false);
+        }
+      };
+
+      mediaRecorder.start();
+      setGravando(true);
+      if (!exercicio) {
+        setTranscricao('');
+      }
+      setSessaoAtiva(null);
+      window.speechSynthesis.cancel();
+    } catch (err) {
+      console.error("Erro ao acessar microfone:", err);
+      alert("Por favor, permita o acesso ao microfone.");
+    }
+  };
+
+  const pararGravacao = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setGravando(false);
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  const selecionarSessao = (sessao) => {
+    setSessaoAtiva(sessao);
+    setTranscricao(sessao.transcricao);
+    setExercicio(sessao.exercicio);
+    falar(sessao.exercicio);
+  };
+
+  const formatarAnalise = (texto) => {
+    if (!texto) return null;
+
+    const getMatch = (tag) => {
+      const regex = new RegExp(`${tag}:([\\s\\S]*?)(?=[A-Z]{4,}:|$)`);
+      const match = texto.match(regex);
+      return match ? match[1].trim() : null;
+    };
+
+    const sections = {
+      abordagem: getMatch('ABORDAGEM'),
+      laudo: getMatch('LAUDO'),
+      mapa: getMatch('MAPA'),
+      orientacao: getMatch('ORIENTACAO'),
+      sessao: getMatch('SESSAO')
+    };
+
+    return (
+      <div className="professional-analysis">
+        {sections.abordagem && (
+          <div className="analysis-section theory-badge">
+            <h4 style={{ color: '#ec4899' }}><Sparkles size={14} style={{ marginRight: 8 }} /> Base Teórica</h4>
+            <p className="theory-text"><strong>{sections.abordagem}</strong></p>
+          </div>
+        )}
+        {sections.laudo && (
+          <div className="analysis-section">
+            <h4><ChevronRight size={14} /> Laudo de Acompanhamento</h4>
+            <p className="clinical-text">{sections.laudo}</p>
+          </div>
+        )}
+
+        {sections.mapa && (
+          <div className="analysis-section sensitivity-map">
+            <h4><ChevronRight size={14} /> Mapa de Sensibilidade</h4>
+            <div className="trigger-cloud">
+              {sections.mapa.split('\n').map((line, i) => line.trim() && (
+                <span key={i} className="trigger-tag">{line.replace(/^[-*]\s*/, '')}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {sections.orientacao && (
+          <div className="analysis-section orientation">
+            <h4><ChevronRight size={14} /> Orientação Técnica</h4>
+            <p>{sections.orientacao}</p>
+          </div>
+        )}
+
+        {sections.sessao && (
+          <div className="analysis-section preparation">
+            <h4><ChevronRight size={14} /> Pauta para Próxima Sessão</h4>
+            <ul>
+              {sections.sessao.split('\n').map((line, i) => line.trim() && (
+                <li key={i}>{line.replace(/^[-*]\s*/, '')}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (!usuario) {
+    return <LoginView setUsuario={setUsuario} API_BASE_URL={API_BASE_URL} />;
+  }
+
+  // VISTA 2: Visão do Psicólogo (Gerenciamento de Pacientes)
+  if (usuario.tipo === 'psicologo') {
+    return (
+      <div className="app-wrapper">
+        <aside className="sidebar">
+          <div className="user-profile-header">
+            <div className="user-info">
+              <span className="user-name">{usuario.nome}</span>
+              <span className="user-role">Profissional</span>
+            </div>
+            <button className="logout-btn" onClick={handleLogout}>
+              <LogOut size={14} />
+            </button>
+          </div>
+
+          {!pacienteSelecionado && (
+            <div style={{ padding: '1rem 1rem 0 1rem' }}>
+              <button
+                className={`nav-btn ${currentView === 'app' && !showNovoPacienteForm ? 'active' : ''}`}
+                onClick={() => { setCurrentView('app'); setShowNovoPacienteForm(false); }}
+                style={{ marginBottom: '8px' }}
+              >
+                <User size={18} style={{ marginRight: 8 }} /> Pacientes
+              </button>
+              <button
+                className={`nav-btn ${currentView === 'agenda' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('agenda'); setShowNovoPacienteForm(false); }}
+                style={{ marginBottom: '8px' }}
+              >
+                <Calendar size={18} style={{ marginRight: 8 }} /> Minha Agenda
+              </button>
+              <button
+                className={`nav-btn ${currentView === 'financeiro' ? 'active' : ''}`}
+                onClick={() => { setCurrentView('financeiro'); fetchFinanceiro(); setShowNovoPacienteForm(false); }}
+                style={{ marginBottom: '8px' }}
+              >
+                <BarChart3 size={18} style={{ marginRight: 8 }} /> Painel Financeiro
+              </button>
+              <button
+                className={`nav-btn ${showNovoPacienteForm ? 'active' : ''}`}
+                onClick={() => { setShowNovoPacienteForm(true); setCurrentView('app'); }}
+                style={{ marginBottom: '1rem', borderColor: 'var(--accent)', color: 'white', background: showNovoPacienteForm ? 'var(--accent)' : 'rgba(139, 92, 246, 0.1)' }}
+              >
+                + Cadastrar Paciente
+              </button>
+            </div>
+          )}
+
+          {currentView === 'app' && !pacienteSelecionado && !showNovoPacienteForm && (
+            <>
+              <div className="sidebar-header" style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderBottom: '1px solid var(--glass-border)' }}>
+                <h2 style={{ fontSize: '1.2rem', margin: 0 }}>
+                  <History size={18} style={{ marginRight: 8 }} /> Pacientes Ativos
+                </h2>
+              </div>
+
+              <div className="history-list">
+                {listaPacientes.map((p) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={`history-item ${pacienteSelecionado?.id === p.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setPacienteSelecionado(p);
+                      setCurrentView('app');
+                    }}
+                  >
+                    <div className="history-item-content">
+                      <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '4px' }}>
+                        {p.nome}
+                      </div>
+                      <div className="preview" style={{ fontSize: '0.75rem', opacity: 0.7 }}>
+                        Atividade: {p.ultima_atividade}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+                {listaPacientes.length === 0 && (
+                  <div className="status-text" style={{ textAlign: 'center', marginTop: '2rem' }}>
+                    Nenhum paciente cadastrado
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {pacienteSelecionado && (
+            <>
+              <div className="sidebar-header" style={{ padding: '1.5rem' }}>
+                <button
+                  className="back-link"
+                  onClick={() => {
+                    setPacienteSelecionado(null);
+                    setCurrentView('app');
+                  }}
+                  style={{ marginBottom: '1.5rem' }}
+                >
+                  <ArrowLeft size={16} /> Voltar para Pacientes
+                </button>
+                <h2 style={{ fontSize: '1.1rem', margin: 0 }}>
+                  <History size={16} style={{ marginRight: 8 }} /> Desabafos do Paciente
+                </h2>
+              </div>
+
+              <div className="history-list">
+                {filteredHistorico.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`history-item ${sessaoAtiva?.id === item.id ? 'active' : ''}`}
+                    onClick={() => selecionarSessao(item)}
+                    style={{ padding: '0.8rem' }}
+                  >
+                    <div className="date" style={{ fontSize: '0.65rem' }}>
+                      {item.data}
+                    </div>
+                    <div className="preview" style={{ fontSize: '0.8rem' }}>{item.transcricao}</div>
+                  </div>
+                ))}
+                {filteredHistorico.length === 0 && (
+                  <div className="status-text" style={{ textAlign: 'center', marginTop: '2rem' }}>
+                    Nenhum desabafo
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </aside>
+
+        <main className="main-content">
+          <div className="app-container" style={{ maxWidth: '900px' }}>
+            {showNovoPacienteForm && !pacienteSelecionado ? (
+              <div style={{ maxWidth: '500px', margin: '0 auto', background: 'var(--card-bg)', border: '1px solid var(--glass-border)', padding: '3rem', borderRadius: '2rem' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                  <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2rem' }}>Cadastrar Novo Paciente</h2>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '0.5rem' }}>Ele será vinculado automaticamente a você e poderá agendar sessões.</p>
+                </div>
+                <form onSubmit={handlePsicologoCadastrarPaciente} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div className="form-group">
+                    <label>Nome Completo do Paciente</label>
+                    <input type="text" placeholder="Nome do paciente" value={novoPacNome} onChange={(e) => setNovoPacNome(e.target.value)} required />
+                  </div>
+                  <div className="form-group">
+                    <label>E-mail</label>
+                    <input type="email" placeholder="email@paciente.com" value={novoPacEmail} onChange={(e) => setNovoPacEmail(e.target.value)} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Senha Provisória</label>
+                    <input type="password" placeholder="Defina a senha dele" value={novoPacSenha} onChange={(e) => setNovoPacSenha(e.target.value)} required />
+                  </div>
+                  <button type="submit" className="auth-submit-btn" disabled={carregando}>
+                    {carregando ? 'Cadastrando...' : 'Salvar e Vincolar Paciente'}
+                  </button>
+                  <button type="button" className="reset-btn" onClick={() => setShowNovoPacienteForm(false)}>Cancelar</button>
+                </form>
+              </div>
+            ) : !pacienteSelecionado ? (
+              currentView === 'agenda' ? (
+                <div>
+                  <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.2rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <Calendar size={32} style={{ color: 'var(--accent)' }} /> Minha Agenda Geral
+                  </h2>
+                  <AgendaView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} listaPacientes={listaPacientes} />
+                </div>
+              ) : currentView === 'financeiro' ? (
+                <div>
+                  <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.2rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <BarChart3 size={32} style={{ color: 'var(--accent)' }} /> Fluxo de Caixa Clínico
+                  </h2>
+                  <FinanceiroView 
+                    usuario={usuario}
+                    API_BASE_URL={API_BASE_URL}
+                    pacienteSelecionado={null}
+                    financeiroData={financeiroData}
+                    setFinanceiroData={setFinanceiroData}
+                    listaPacotes={listaPacotes}
+                    fetchFinanceiro={fetchFinanceiro}
+                    fetchPacotes={fetchPacotes}
+                  />
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', marginTop: '4rem' }}>
+                  <User size={64} style={{ color: 'var(--accent)', opacity: 0.5, marginBottom: '1.5rem' }} />
+                  <h2 style={{ fontSize: '2rem', fontFamily: 'Outfit, sans-serif', marginBottom: '0.5rem' }}>
+                    Bem-vindo, Dr(a). {usuario.nome.split(' ')[0]}!
+                  </h2>
+                  <p style={{ color: 'var(--text-muted)' }}>
+                    Navegue pela barra lateral para gerenciar pacientes, verificar consultas ou analisar o faturamento.
+                  </p>
+                </div>
+              )
+            ) : (
+              <div>
+                <div className="patient-detail-header">
+                  <div className="patient-detail-info">
+                    <h2>{pacienteSelecionado.nome}</h2>
+                    <p style={{ color: 'var(--text-muted)' }}>{pacienteSelecionado.email}</p>
+                  </div>
+                  <button className="back-link" onClick={() => { setPacienteSelecionado(null); setCurrentView('app'); }}>
+                    <ArrowLeft size={16} /> Fechar Ficha do Paciente
+                  </button>
+                </div>
+
+                {carregandoInsights ? (
+                  <div style={{ background: 'rgba(255, 255, 255, 0.01)', border: '1px dashed rgba(255,255,255,0.1)', padding: '1rem', borderRadius: '1rem', marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Carregando análises de risco e insights rápidos do paciente com Gemini...
+                  </div>
+                ) : (insightsIA.foco || (insightsIA.alertas && insightsIA.alertas.length > 0)) && (
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.05)',
+                    border: '1px solid rgba(239, 68, 68, 0.15)',
+                    borderRadius: '1.2rem',
+                    padding: '1.2rem',
+                    marginBottom: '1.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#f87171', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <Sparkles size={14} /> Sinais de Risco / Alertas:
+                      </span>
+                      {insightsIA.alertas && insightsIA.alertas.map((alerta, idx) => (
+                        <span key={idx} style={{
+                          background: alerta.toLowerCase().includes('baixo') ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.2)',
+                          color: alerta.toLowerCase().includes('baixo') ? '#4ade80' : '#f87171',
+                          fontSize: '0.75rem',
+                          padding: '3px 8px',
+                          borderRadius: '20px',
+                          fontWeight: 'bold'
+                        }}>
+                          {alerta}
+                        </span>
+                      ))}
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                        Tendência de Humor: <strong>{insightsIA.humor_trend}</strong>
+                      </span>
+                    </div>
+
+                    {insightsIA.foco && (
+                      <div style={{ fontSize: '0.85rem', color: '#cbd5e1', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+                        💡 <strong>Preparativo em 10s (Foco sugerido):</strong> {insightsIA.foco}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', marginBottom: '2rem' }}>
+                  <button
+                    className={`nav-btn ${currentView === 'app' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('app'); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <MessageSquare size={16} style={{ marginRight: 8 }} /> Histórico Clínico
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('dashboard'); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <BarChart3 size={16} style={{ marginRight: 8 }} /> Evolução
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'agenda' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('agenda'); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <Calendar size={16} style={{ marginRight: 8 }} /> Consultas
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'financeiro' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('financeiro'); fetchPacotes(pacienteSelecionado.id); fetchFinanceiro(); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <BarChart3 size={16} style={{ marginRight: 8 }} /> Financeiro
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'prontuario' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('prontuario'); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0, borderColor: 'var(--accent)' }}
+                  >
+                    <Sparkles size={16} style={{ marginRight: 8, color: 'var(--accent)' }} /> Prontuário IA
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'tarefas' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('tarefas'); fetchTarefas(pacienteSelecionado.id); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <ClipboardList size={16} style={{ marginRight: 8 }} /> Tarefas
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'anamnese' ? 'active' : ''}`}
+                    onClick={() => { setCurrentView('anamnese'); fetchAnamnese(pacienteSelecionado.id); }}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <ClipboardList size={16} style={{ marginRight: 8 }} /> Anamnese
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'avaliacoes' ? 'active' : ''}`}
+                    onClick={() => setCurrentView('avaliacoes')}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <BarChart3 size={16} style={{ marginRight: 8 }} /> Avaliações
+                  </button>
+                  <button
+                    className={`nav-btn ${currentView === 'plano_terapeutico' ? 'active' : ''}`}
+                    onClick={() => setCurrentView('plano_terapeutico')}
+                    style={{ flex: 1, justifyContent: 'center', marginBottom: 0 }}
+                  >
+                    <Plus size={16} style={{ marginRight: 8 }} /> Plano
+                  </button>
+                </div>
+
+                {currentView === 'dashboard' ? (
+                  <DashboardView historico={historico} setCurrentView={setCurrentView} />
+                ) : currentView === 'agenda' ? (
+                  <AgendaView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} listaPacientes={listaPacientes} />
+                ) : currentView === 'financeiro' ? (
+                  <FinanceiroView 
+                    usuario={usuario}
+                    API_BASE_URL={API_BASE_URL}
+                    pacienteSelecionado={pacienteSelecionado}
+                    financeiroData={financeiroData}
+                    setFinanceiroData={setFinanceiroData}
+                    listaPacotes={listaPacotes}
+                    fetchFinanceiro={fetchFinanceiro}
+                    fetchPacotes={fetchPacotes}
+                  />
+                ) : currentView === 'prontuario' ? (
+                  <ProntuarioIAView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} />
+                ) : currentView === 'tarefas' ? (
+                  <TarefasClinicasView 
+                    usuario={usuario}
+                    API_BASE_URL={API_BASE_URL}
+                    pacienteSelecionado={pacienteSelecionado}
+                    listaTarefas={listaTarefas}
+                    carregandoTarefas={carregandoTarefas}
+                    fetchTarefas={fetchTarefas}
+                  />
+                ) : currentView === 'anamnese' ? (
+                  <AnamneseView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} />
+                ) : currentView === 'avaliacoes' ? (
+                  <AvaliacoesView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} />
+                ) : currentView === 'plano_terapeutico' ? (
+                  <PlanoTerapeuticoView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} />
+                ) : (
+                  <div style={{ display: 'flex', gap: '2rem' }}>
+                    {/* Barra de Busca Dinâmica Interna */}
+                    <div style={{ width: '30%', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="search-container" style={{ marginTop: 0 }}>
+                        <Search className="search-icon" size={16} />
+                        <input
+                          type="text"
+                          placeholder="Buscar registros..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          style={{ padding: '0.6rem 0.8rem 0.6rem 2.2rem', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                      <div style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {filteredHistorico.map((item) => (
+                          <div
+                            key={item.id}
+                            className={`history-item ${sessaoAtiva?.id === item.id ? 'active' : ''}`}
+                            onClick={() => selecionarSessao(item)}
+                            style={{ padding: '0.8rem' }}
+                          >
+                            <div className="date" style={{ fontSize: '0.65rem' }}>
+                              {item.data}
+                            </div>
+                            <div className="preview" style={{ fontSize: '0.8rem' }}>{item.transcricao}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Ficha Clínica Selecionada */}
+                    <div style={{ flex: 1 }}>
+                      {exercicio ? (
+                        <motion.div
+                          className="result-card professional-card"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{ margin: 0, background: 'rgba(15, 23, 42, 0.4)' }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center' }}>
+                              <Sparkles size={14} style={{ marginRight: 8 }} /> Ficha Evolutiva (IA)
+                            </h3>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={falando ? pararDeFalar : () => falar(exercicio)}
+                                className="audio-control-btn"
+                                title={falando ? "Parar áudio" : "Ouvir laudo"}
+                              >
+                                {falando ? <Square size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+                              </button>
+                              <button className="logout-btn" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }} onClick={(e) => deleteSessao(e, sessaoAtiva.id)}>
+                                <Trash2 size={12} /> Apagar
+                              </button>
+                            </div>
+                          </div>
+                          <div className="result-card" style={{ background: 'rgba(0,0,0,0.2)', borderLeftColor: 'rgba(255,255,255,0.1)', padding: '1rem', marginBottom: '1.5rem' }}>
+                            <h4 style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Relato do Paciente</h4>
+                            <p style={{ fontSize: '0.95rem', color: '#e2e8f0', fontStyle: 'italic' }}>"{transcricao}"</p>
+                          </div>
+                          {formatarAnalise(exercicio)}
+                        </motion.div>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '4rem 2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1.5rem', border: '1px solid var(--glass-border)' }}>
+                          <MessageSquare size={32} style={{ color: 'var(--accent)', opacity: 0.4, marginBottom: '1rem' }} />
+                          <h4 style={{ margin: 0, color: 'var(--text-main)' }}>Selecione um desabafo na coluna esquerda</h4>
+                          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                            Você poderá verificar a transcrição do áudio, gatilhos identificados e orientações teóricas da IA.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const TCLEModal = () => (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15,23,42,0.95)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--glass-border)', borderRadius: '1.5rem', padding: '2.5rem', maxWidth: '650px', width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <h2 style={{ color: 'white', marginBottom: '1rem', fontFamily: 'Outfit, sans-serif' }}>Termo de Consentimento Livre e Esclarecido (TCLE)</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+          Para iniciarmos seu acompanhamento terapêutico mediado por nossa plataforma, é necessária a leitura e o aceite do nosso TCLE, conforme as normas do Conselho Federal de Psicologia.
+        </p>
+        <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1.5rem', borderRadius: '1rem', color: '#cbd5e1', fontSize: '0.85rem', lineHeight: '1.6', height: '250px', overflowY: 'auto', marginBottom: '2rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <p><strong>1. Natureza do Serviço:</strong> O atendimento psicológico realizado nesta plataforma utiliza inteligência artificial como ferramenta auxiliar para transcrição e resumo de sessões, garantindo a confidencialidade e o sigilo profissional.</p>
+          <p><strong>2. Sigilo Profissional:</strong> Todas as informações trocadas durante as sessões e registradas no aplicativo são sigilosas e protegidas por criptografia, em conformidade com o Código de Ética Profissional do Psicólogo e a LGPD (Lei Geral de Proteção de Dados).</p>
+          <p><strong>3. Limitações em Caso de Emergência:</strong> A plataforma e a comunicação assíncrona não são adequadas para situações de emergência (como risco de vida, surtos ou ideação suicida imediata). Nestes casos, o paciente deve buscar atendimento de emergência local (SAMU, CVV 188).</p>
+          <p><strong>4. Consentimento para Uso de IA:</strong> Concordo que os áudios e textos inseridos na plataforma podem ser processados por algoritmos fechados de Inteligência Artificial para fins exclusivos do meu tratamento e sob a supervisão do meu psicólogo.</p>
+          <p><strong>5. Gravação de Sessões:</strong> É proibida a gravação audiovisual e em áudio das sessões em vídeo (se houver) por parte do paciente sem autorização prévia por escrito.</p>
+        </div>
+        
+        <button 
+          className="btn-primary" 
+          onClick={handleAssinarTCLE} 
+          disabled={carregandoTcle}
+          style={{ width: '100%', padding: '1rem', fontSize: '1rem', fontWeight: 'bold' }}
+        >
+          {carregandoTcle ? 'Registrando...' : 'Li e Concordo com os Termos'}
+        </button>
+      </div>
+    </div>
+  );
+
+  // VISTA 3: Visão do Paciente (Chat, Gravação e Histórico)
+  return (
+    <div className="app-wrapper">
+      {!tcleAssinado && <TCLEModal />}
+      <aside className="sidebar">
+        <div className="user-profile-header">
+          <div className="user-info">
+            <span className="user-name">{usuario.nome}</span>
+            <span className="user-role">Paciente</span>
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>
+            <LogOut size={14} />
+          </button>
+        </div>
+
+        <div className="sidebar-header">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2 style={{ margin: 0 }}><History size={20} style={{ marginRight: 8 }} /> Histórico</h2>
+            <button className="sos-btn-small" onClick={() => setShowSOS(true)} title="Modo SOS / Respiração">
+              <Wind size={18} />
+            </button>
+          </div>
+          <button
+            className={`nav-btn ${currentView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setCurrentView('dashboard')}
+            style={{ marginBottom: '8px' }}
+          >
+            <BarChart3 size={18} style={{ marginRight: 8 }} /> Ver Evolução
+          </button>
+          <button
+            className={`nav-btn ${currentView === 'agenda' ? 'active' : ''}`}
+            onClick={() => { setCurrentView('agenda'); }}
+            style={{ marginBottom: '8px' }}
+          >
+            <Calendar size={18} style={{ marginRight: 8 }} /> Minhas Consultas
+          </button>
+          <button
+            className={`nav-btn ${currentView === 'financeiro' ? 'active' : ''}`}
+            onClick={() => { setCurrentView('financeiro'); fetchPacotes(); fetchFinanceiro(); }}
+            style={{ marginBottom: '8px' }}
+          >
+            <BarChart3 size={18} style={{ marginRight: 8 }} /> Meus Pagamentos
+          </button>
+          <button
+            className={`nav-btn ${currentView === 'tarefas' ? 'active' : ''}`}
+            onClick={() => { setCurrentView('tarefas'); fetchTarefas(usuario.id); }}
+            style={{ marginBottom: '8px' }}
+          >
+            <ClipboardList size={18} style={{ marginRight: 8 }} /> Minhas Tarefas
+          </button>
+          <button
+            className={`nav-btn ${currentView === 'diario' ? 'active' : ''}`}
+            onClick={() => { setCurrentView('diario'); fetchDiario(); }}
+            style={{ marginBottom: '1rem' }}
+          >
+            <MessageSquare size={18} style={{ marginRight: 8 }} /> Diário Emocional
+          </button>
+          <div className="search-container">
+            <Search className="search-icon" size={18} />
+            <input
+              type="text"
+              placeholder="Pesquisar registros..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="history-list">
+          {filteredHistorico.map((item) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className={`history-item ${sessaoAtiva?.id === item.id ? 'active' : ''}`}
+              onClick={() => {
+                selecionarSessao(item);
+                setCurrentView('app');
+              }}
+            >
+              <div className="history-item-content">
+                <div className="date">
+                  {item.data} • <span className={`sentiment-tag ${getSentimentClass(item.sentimento)}`}>{item.sentimento}</span>
+                  <button className="delete-btn" onClick={(e) => deleteSessao(e, item.id)}>
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div className="preview">{item.transcricao}</div>
+              </div>
+            </motion.div>
+          ))}
+          {filteredHistorico.length === 0 && (
+            <div className="status-text" style={{ textAlign: 'center', marginTop: '2rem' }}>
+              Nenhum registro encontrado
+            </div>
+          )}
+        </div>
+      </aside>
+
+      <main className="main-content">
+        <AnimatePresence>
+          {showSOS && <SOSOverlay />}
+        </AnimatePresence>
+
+        {currentView === 'dashboard' ? (
+          <DashboardView historico={historico} setCurrentView={setCurrentView} />
+        ) : currentView === 'agenda' ? (
+          <div className="app-container" style={{ maxWidth: '900px' }}>
+            <header className="header" style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Agendamento de Sessões</h2>
+              <p style={{ color: 'var(--text-muted)' }}>Agende e gerencie suas consultas presenciais ou online</p>
+            </header>
+            <AgendaView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} listaPacientes={listaPacientes} />
+          </div>
+        ) : currentView === 'financeiro' ? (
+          <div className="app-container" style={{ maxWidth: '900px' }}>
+            <header className="header" style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Painel Financeiro</h2>
+              <p style={{ color: 'var(--text-muted)' }}>Acompanhe seu saldo de sessões e histórico de faturas</p>
+            </header>
+            <FinanceiroView 
+              usuario={usuario}
+              API_BASE_URL={API_BASE_URL}
+              pacienteSelecionado={pacienteSelecionado}
+              financeiroData={financeiroData}
+              setFinanceiroData={setFinanceiroData}
+              listaPacotes={listaPacotes}
+              fetchFinanceiro={fetchFinanceiro}
+              fetchPacotes={fetchPacotes}
+            />
+          </div>
+        ) : currentView === 'tarefas' ? (
+          <div className="app-container" style={{ maxWidth: '900px' }}>
+            <header className="header" style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Minhas Tarefas</h2>
+              <p style={{ color: 'var(--text-muted)' }}>Atividades e reflexões prescritas pelo seu terapeuta para realizar durante a semana</p>
+            </header>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {carregandoTarefas ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Carregando atividades...</p>
+              ) : listaTarefas.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '4rem 1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1.5rem', border: '1px dashed rgba(255,255,255,0.1)' }}>
+                  <ClipboardList size={40} style={{ color: 'var(--accent)', opacity: 0.3, marginBottom: '1rem', display: 'block', margin: '0 auto' }} />
+                  <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>Nenhuma tarefa pendente</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>
+                    Seu terapeuta irá prescrever exercícios ou leituras específicas por aqui quando necessário. Fique atento!
+                  </p>
+                </div>
+              ) : (
+                listaTarefas.map((tarefa) => (
+                  <div key={tarefa.id} style={{
+                    background: tarefa.concluida ? 'rgba(34, 197, 94, 0.02)' : 'rgba(15, 23, 42, 0.4)',
+                    border: tarefa.concluida ? '1px solid rgba(34, 197, 94, 0.15)' : '1px solid var(--glass-border)',
+                    padding: '1.5rem',
+                    borderRadius: '1.2rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ margin: 0, color: 'white', fontSize: '1.25rem', fontFamily: 'Outfit, sans-serif' }}>{tarefa.titulo}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Criado em: {tarefa.data_criacao}</span>
+                        {tarefa.concluida && (
+                          <span style={{ fontSize: '0.7rem', background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>Concluído</span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p style={{
+                      color: '#cbd5e1',
+                      fontSize: '0.95rem',
+                      lineHeight: '1.6',
+                      margin: 0,
+                      background: 'rgba(0,0,0,0.15)',
+                      padding: '1rem',
+                      borderRadius: '0.75rem',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {tarefa.descricao}
+                    </p>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '5px' }}>
+                      {tarefa.concluida ? (
+                        <>
+                          <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>Concluída em: {tarefa.data_conclusao}</span>
+                          <button
+                            onClick={() => handleConcluirTarefa(tarefa.id, false)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              color: '#ef4444',
+                              border: '1px solid rgba(239, 68, 68, 0.2)',
+                              padding: '5px 12px',
+                              borderRadius: '0.5rem',
+                              fontSize: '0.8rem',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Refazer Tarefa
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => handleConcluirTarefa(tarefa.id, true)}
+                          style={{
+                            background: 'var(--accent)',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '0.5rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 'bold',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          Marcar como Concluída ✔️
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        ) : currentView === 'diario' ? (
+          <div className="app-container" style={{ maxWidth: '900px' }}>
+            <header className="header" style={{ marginBottom: '1.5rem' }}>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Diário Emocional</h2>
+              <p style={{ color: 'var(--text-muted)' }}>Acompanhe seu humor e seus sentimentos</p>
+            </header>
+            <DiarioEmocionalView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={null} />
+          </div>
+        ) : (
+          <div className="app-container">
+            <header className="header">
+              <motion.h1
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                Psicólogo IA
+              </motion.h1>
+              <p className="status-text">Seu suporte profissional e preparação para terapia</p>
+            </header>
+
+            <motion.div
+              className="main-card"
+              layout
+            >
+              <section className="record-section">
+                <button
+                  className={`pulse-button ${gravando ? 'recording' : ''}`}
+                  onClick={gravando ? pararGravacao : iniciarGravacao}
+                  disabled={carregando}
+                >
+                  {gravando ? <Square size={48} /> : <Mic size={48} />}
+                </button>
+                <div className="status-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span className="status-text">
+                    {gravando ? 'Ouvindo desabafo...' : carregando ? 'Atualizando prontuário...' : exercicio ? 'Clique para dar seguimento' : 'Clique para começar a falar'}
+                  </span>
+                  {exercicio && !carregando && !gravando && (
+                    <button className="reset-btn" onClick={() => { setTranscricao(''); setExercicio(''); setSessaoAtiva(null); window.speechSynthesis.cancel(); }}>
+                      Novo Desabafo
+                    </button>
+                  )}
+                </div>
+              </section>
+
+              <AnimatePresence mode="wait">
+                {(transcricao || exercicio || carregando) && (
+                  <motion.section
+                    className="result-section"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <div className="result-card">
+                      <h3><MessageSquare size={14} style={{ marginRight: 8 }} /> Seu Desabafo</h3>
+                      <p>{carregando && !transcricao ? <span className="loading-dots">Transcrevendo áudio</span> : transcricao}</p>
+                    </div>
+
+                    {(exercicio || carregando) && (
+                      <motion.div
+                        className="result-card professional-card"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                      >
+                        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
+                            <Sparkles size={14} style={{ marginRight: 8 }} /> Análise e Preparação
+                          </h3>
+                          <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
+                            {exercicio && (
+                              <>
+                                <button
+                                  onClick={copiarParaPsicologo}
+                                  className="audio-control-btn"
+                                  title="Copiar Resumo para o Psicólogo"
+                                  style={{ background: 'rgba(255,255,255,0.1)' }}
+                                >
+                                  <Calendar size={16} />
+                                </button>
+                                <button
+                                  onClick={falando ? pararDeFalar : () => falar(exercicio)}
+                                  className="audio-control-btn"
+                                  title={falando ? "Parar áudio" : "Ouvir resposta"}
+                                >
+                                  {falando ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="analysis-content">
+                          {carregando && !exercicio ? (
+                            <span className="loading-dots">Consultando abordagem terapêutica</span>
+                          ) : (
+                            formatarAnalise(exercicio)
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </motion.section>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;
