@@ -76,25 +76,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
+    // Se estiver no modo demo, não há inicialização de Supabase a fazer
+    if (isDemoMode) {
+      setLoading(false);
       return;
     }
 
-    // Modo Supabase Real
+    if (!isSupabaseConfigured) {
+      setIsDemoMode(true);
+      setLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    // Modo Supabase Real com Timeout de Segurança de 4 segundos
     const initAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Supabase connection timeout')), 4000)
+        );
+
+        // Faz corrida para evitar travamento indefinido caso a rede falhe silenciosamente
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as { data: { session: any } };
+
+        if (!isMounted) return;
+
         if (session?.user) {
           await fetchProfile(session.user);
         } else {
           setUser(null);
         }
       } catch (err) {
-        console.error('Erro ao buscar sessão inicial:', err);
-        // Fallback para modo demo caso o Supabase dê erro de rede/configuração
-        setIsDemoMode(true);
+        console.error('Erro ao buscar sessão inicial do Supabase, mudando para modo Demo:', err);
+        if (isMounted) {
+          setIsDemoMode(true);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -102,16 +124,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Ouvinte de mudanças na autenticação do Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!isMounted) return;
       setLoading(true);
-      if (session?.user) {
-        await fetchProfile(session.user);
-      } else {
-        setUser(null);
+      try {
+        if (session?.user) {
+          await fetchProfile(session.user);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Erro ao processar mudanca de estado de auth:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, [isDemoMode]);
