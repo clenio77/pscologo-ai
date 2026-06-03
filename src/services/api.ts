@@ -56,6 +56,8 @@ export interface PatientForm {
   patient_id: string;
   template_id: string;
   answers: Record<string, unknown>;
+  respondent_name?: string;
+  respondent_relationship?: string;
   filled_at: string;
   created_at: string;
   template?: { title: string };
@@ -385,7 +387,14 @@ export const api = {
 
     const { data, error } = await supabase
       .from('patient_forms')
-      .insert(patientForm)
+      .insert({
+        professional_id: patientForm.professional_id,
+        patient_id: patientForm.patient_id,
+        template_id: patientForm.template_id,
+        answers: patientForm.answers,
+        respondent_name: patientForm.respondent_name || null,
+        respondent_relationship: patientForm.respondent_relationship || null
+      })
       .select('*, template:form_templates(title)')
       .single();
 

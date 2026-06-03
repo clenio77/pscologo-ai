@@ -10,7 +10,8 @@ import {
   PlusCircle, 
   FileText, 
   HelpCircle, 
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import './Forms.css';
 
@@ -125,6 +126,154 @@ export const Forms: React.FC = () => {
     }
   };
 
+  const loadPredefinedTemplate = (type: 'infantil' | 'idoso' | 'tcc') => {
+    if (fields.length > 0 && !window.confirm('Carregar este modelo irá substituir todas as perguntas atuais do rascunho. Deseja continuar?')) {
+      return;
+    }
+
+    const generateId = (idx: number) => `field-${type}-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
+
+    if (type === 'infantil') {
+      setFormTitle('Anamnese de Desenvolvimento Infantil');
+      setFormDesc('Roteiro baseado em marcos de neurodesenvolvimento e sociabilidade, ideal para ser respondido pelos pais ou responsáveis legais do menor.');
+      setFields([
+        {
+          id: generateId(1),
+          label: 'Gestação e Pré-natal: Como foi o período de gestação? Ocorreu alguma intercorrência física ou emocional de relevância?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(2),
+          label: 'Condições de Parto: Como foi o parto (normal, cesárea)? O bebê nasceu a termo e necessitou de UTI neonatal ou oxigênio?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(3),
+          label: 'Marcos de Neurodesenvolvimento: Com que idade a criança engatinhou, andou, falou as primeiras palavras e obteve o desfralde?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(4),
+          label: 'Sono e Alimentação: Descreva a rotina de sono e alimentação atual da criança (há insônia, pesadelos, recusa ou seletividade alimentar)?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(5),
+          label: 'Comportamento e Socialização: Como a criança interage com outras crianças e adultos? Do que prefere brincar no dia a dia?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(6),
+          label: 'Dinâmica Escolar: Apresenta dificuldades na escola? Como foi o processo de adaptação escolar?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(7),
+          label: 'Histórico de Saúde Geral: Apresenta alergias, doenças crônicas ou toma alguma medicação de uso contínuo?',
+          type: 'textarea',
+          required: false
+        }
+      ]);
+      addToast('Template Infantil carregado! Você pode alterar ou adicionar perguntas livremente.', 'success');
+    } else if (type === 'idoso') {
+      setFormTitle('Anamnese Psicossocial e Autonomia');
+      setFormDesc('Roteiro clínico focado na perda de funções cognitivas, capacidade funcional e suporte de cuidadores. Indicado para ser respondido por filhos ou responsáveis.');
+      setFields([
+        {
+          id: generateId(1),
+          label: 'Queixa Principal da Família: Quais foram as primeiras alterações de memória, comportamento ou orientação que chamaram a atenção?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(2),
+          label: 'Independência Funcional (AVDs): O paciente consegue realizar de forma autônoma atividades diárias (comer, tomar banho, vestir-se)?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(3),
+          label: 'Gestão e Remédios: O paciente consegue tomar suas medicações de forma independente e gerenciar finanças ou compras?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(4),
+          label: 'Alterações Comportamentais: Apresenta episódios de agressividade, desorientação temporal/espacial, agitação noturna ou alucinações?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(5),
+          label: 'Histórico Clínico e Riscos: Apresenta histórico de quedas frequentes, esquecimentos que geram riscos (ex. gás ligado) ou saídas sem rumo?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(6),
+          label: 'Rede de Apoio e Cuidados: Quem é o cuidador principal do paciente e qual é a rotina atual de assistência familiar?',
+          type: 'textarea',
+          required: false
+        }
+      ]);
+      addToast('Template de Idoso/Cuidador carregado! Você pode alterar ou adicionar perguntas livremente.', 'success');
+    } else if (type === 'tcc') {
+      setFormTitle('Anamnese e Formulação Cognitiva (TCC)');
+      setFormDesc('Roteiro estruturado segundo a abordagem cognitivo-comportamental de Aaron e Judith Beck. Respondido pelo próprio paciente.');
+      setFields([
+        {
+          id: generateId(1),
+          label: 'Queixa Principal e Objetivos: Quais são os principais problemas que motivaram a busca por psicoterapia e o que deseja alcançar?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(2),
+          label: 'Histórico da Queixa (HDA): Quando as principais queixas começaram e em quais contextos elas costumam se intensificar?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(3),
+          label: 'Pensamentos Automáticos Recorrentes: Quais pensamentos negativos ou autocríticos costumam passar pela sua mente em momentos de sofrimento?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(4),
+          label: 'Reações Emocionais e Fisiológicas: Quais emoções (ansiedade, tristeza, raiva) e sensações no corpo você mais experimenta nessas situações?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(5),
+          label: 'Comportamentos e Estratégias Compensatórias: O que você costuma fazer para aliviar o sofrimento ou evitar as situações que geram mal-estar?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(6),
+          label: 'Histórico Psiquiátrico e Terapêutico: Já realizou tratamento psiquiátrico ou psicoterapêutico anteriormente? Se sim, quais foram os resultados?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(7),
+          label: 'Medicamentos Psicotrópicos: Faz uso de alguma medicação psiquiátrica atual? Se sim, qual o nome, dosagem e tempo de uso?',
+          type: 'text',
+          required: false
+        }
+      ]);
+      addToast('Template de TCC carregado! Você pode alterar ou adicionar perguntas livremente.', 'success');
+    }
+  };
+
   const openCreateModal = () => {
     setFormTitle('');
     setFormDesc('');
@@ -197,6 +346,27 @@ export const Forms: React.FC = () => {
               {/* Lado Esquerdo: Adicionar campos e Metadados */}
               <div className="creator-left-panel">
                 <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="template-quick-loaders">
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontWeight: 600 }}>
+                      <Sparkles size={16} />
+                      <span>Modelos Clínicos Clássicos</span>
+                    </label>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                      Importe um roteiro clínico clássico para editar ou monte um modelo do zero.
+                    </span>
+                    <div className="quick-loader-buttons">
+                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('infantil')}>
+                        <span>👶 Infantil (Desenvolvimento)</span>
+                      </button>
+                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('idoso')}>
+                        <span>👵 Idoso / Cuidador (Autonomia)</span>
+                      </button>
+                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('tcc')}>
+                        <span>🧠 Formulação Cognitiva (TCC)</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="form-group">
                     <label className="form-label">Título do Modelo</label>
                     <input 

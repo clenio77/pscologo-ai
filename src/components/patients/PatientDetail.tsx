@@ -172,6 +172,11 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
                             <span className="filled-date">
                               Preenchido em: {new Date(form.filled_at).toLocaleDateString('pt-BR')} às {new Date(form.filled_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
                             </span>
+                            {form.respondent_name && (
+                              <div className="respondent-badge" style={{ fontSize: '0.8rem', color: '#4a7c59', marginTop: '4px', fontWeight: 600 }}>
+                                Respondido por: {form.respondent_name} ({form.respondent_relationship || 'Familiar'})
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="applied-form-answers">

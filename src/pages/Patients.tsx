@@ -41,6 +41,9 @@ export const Patients: React.FC = () => {
   // Formulário: Aplicar Formulário
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [formAnswers, setFormAnswers] = useState<Record<string, unknown>>({});
+  const [isRespondentThirdParty, setIsRespondentThirdParty] = useState(false);
+  const [respName, setRespName] = useState('');
+  const [respRelationship, setRespRelationship] = useState('');
 
   // Carrega lista de pacientes
   const loadPatients = useCallback(async () => {
@@ -142,6 +145,9 @@ export const Patients: React.FC = () => {
     }
     setSelectedTemplateId(templates[0].id);
     setFormAnswers({});
+    setIsRespondentThirdParty(false);
+    setRespName('');
+    setRespRelationship('');
     setIsApplyFormModalOpen(true);
   };
 
@@ -155,6 +161,8 @@ export const Patients: React.FC = () => {
         patient_id: selectedPatient.id,
         template_id: selectedTemplateId,
         answers: formAnswers,
+        respondent_name: isRespondentThirdParty ? respName : undefined,
+        respondent_relationship: isRespondentThirdParty ? respRelationship : undefined,
       });
       setIsApplyFormModalOpen(false);
       addToast('Formulário aplicado com sucesso!', 'success');
@@ -310,7 +318,7 @@ export const Patients: React.FC = () => {
             </div>
             <form onSubmit={handleApplyForm}>
               <div className="modal-body">
-                <div className="form-group">
+                 <div className="form-group">
                   <label className="form-label">Selecione o Modelo de Formulário</label>
                   <select 
                     className="form-control"
@@ -326,6 +334,48 @@ export const Patients: React.FC = () => {
                     ))}
                   </select>
                 </div>
+
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input 
+                      type="checkbox"
+                      id="third-party-respondent"
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      checked={isRespondentThirdParty}
+                      onChange={(e) => setIsRespondentThirdParty(e.target.checked)}
+                    />
+                    <label htmlFor="third-party-respondent" style={{ fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer' }}>
+                      Respondido por um familiar / responsável (Terceiros)
+                    </label>
+                  </div>
+                </div>
+
+                {isRespondentThirdParty && (
+                  <div className="grid grid-2 gap-4 animate-slide-up" style={{ marginTop: '12px', background: 'var(--bg-main)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: '0.82rem' }}>Nome do Responsável</label>
+                      <input 
+                        type="text"
+                        className="form-control"
+                        placeholder="Ex: Maria Pereira"
+                        value={respName}
+                        onChange={(e) => setRespName(e.target.value)}
+                        required={isRespondentThirdParty}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: '0.82rem' }}>Parentesco / Vínculo</label>
+                      <input 
+                        type="text"
+                        className="form-control"
+                        placeholder="Ex: Mãe, Filho, Cuidador..."
+                        value={respRelationship}
+                        onChange={(e) => setRespRelationship(e.target.value)}
+                        required={isRespondentThirdParty}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <hr style={{ margin: '16px 0', borderColor: 'var(--border-color)' }} />
 
