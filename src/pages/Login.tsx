@@ -104,6 +104,9 @@ export const Login: React.FC = () => {
                     demo@agenda.com / 123456
                   </code>
                 </p>
+                <div style={{ fontSize: '0.7rem', color: '#856404', marginTop: '6px', borderTop: '1px dashed rgba(0,0,0,0.1)', paddingTop: '6px', fontFamily: 'monospace' }}>
+                  Diag: URL = {import.meta.env.VITE_SUPABASE_URL ? `${import.meta.env.VITE_SUPABASE_URL.substring(0, 20)}... (${import.meta.env.VITE_SUPABASE_URL.length} chs)` : 'vazia'} | Key = {import.meta.env.VITE_SUPABASE_ANON_KEY ? `presente (${import.meta.env.VITE_SUPABASE_ANON_KEY.length} chs)` : 'vazia'}
+                </div>
               </div>
             </div>
           )}
