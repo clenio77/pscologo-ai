@@ -19,9 +19,8 @@ from functools import wraps
 load_dotenv()
 
 app = Flask(__name__)
-# Permitir acesso apenas do frontend local e prod (configure os domínios reais aqui depois)
-origens_permitidas = ["http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000", "http://127.0.0.1:3001"]
-CORS(app, resources={r"/*": {"origins": origens_permitidas}})
+# Permitir acesso do frontend (Vercel)
+CORS(app)
 
 # Configurações do app
 # Evitar secret key default vulnerável em produção
