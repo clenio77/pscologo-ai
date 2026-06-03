@@ -126,14 +126,62 @@ export const Forms: React.FC = () => {
     }
   };
 
-  const loadPredefinedTemplate = (type: 'infantil' | 'idoso' | 'tcc') => {
+  const loadPredefinedTemplate = (type: 'adulto' | 'infantil' | 'idoso' | 'tcc') => {
     if (fields.length > 0 && !window.confirm('Carregar este modelo irá substituir todas as perguntas atuais do rascunho. Deseja continuar?')) {
       return;
     }
 
     const generateId = (idx: number) => `field-${type}-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 5)}`;
 
-    if (type === 'infantil') {
+    if (type === 'adulto') {
+      setFormTitle('Anamnese Geral Adulto (Diretrizes CFP)');
+      setFormDesc('Roteiro padrão de anamnese clínica focado no próprio paciente adulto, estruturado conforme as diretrizes de registro documental exigidas pelo Conselho Federal de Psicologia (CFP).');
+      setFields([
+        {
+          id: generateId(1),
+          label: 'Dados de Identificação: Nome completo, idade, escolaridade, profissão e estado civil.',
+          type: 'text',
+          required: true
+        },
+        {
+          id: generateId(2),
+          label: 'Queixa Principal: Qual é o motivo principal que levou você a buscar atendimento psicológico neste momento?',
+          type: 'textarea',
+          required: true
+        },
+        {
+          id: generateId(3),
+          label: 'Histórico do Problema Atual (HDA): Descreva quando e como esses sintomas ou conflitos começaram e de que forma afetam sua vida no cotidiano.',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(4),
+          label: 'Histórico Médico e Psiquiátrico: Possui alguma condição de saúde física/mental ativa ou faz uso de medicamentos psicotrópicos?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(5),
+          label: 'Histórico e Dinâmica Familiar: Descreva brevemente sua estrutura familiar atual e se há histórico de transtornos na família.',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(6),
+          label: 'Histórico Social e Ocupacional: Como é sua rotina de trabalho/estudo, atividades de lazer e seu círculo de relações sociais?',
+          type: 'textarea',
+          required: false
+        },
+        {
+          id: generateId(7),
+          label: 'Expectativas e Objetivos: O que você espera alcançar com o início do acompanhamento psicoterapêutico?',
+          type: 'textarea',
+          required: false
+        }
+      ]);
+      addToast('Template de Anamnese Adulto (Diretrizes CFP) carregado! Você pode alterar ou adicionar perguntas livremente.', 'success');
+    } else if (type === 'infantil') {
       setFormTitle('Anamnese de Desenvolvimento Infantil');
       setFormDesc('Roteiro baseado em marcos de neurodesenvolvimento e sociabilidade, ideal para ser respondido pelos pais ou responsáveis legais do menor.');
       setFields([
@@ -355,14 +403,17 @@ export const Forms: React.FC = () => {
                       Importe um roteiro clínico clássico para editar ou monte um modelo do zero.
                     </span>
                     <div className="quick-loader-buttons">
-                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('infantil')}>
-                        <span>👶 Infantil (Desenvolvimento)</span>
-                      </button>
-                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('idoso')}>
-                        <span>👵 Idoso / Cuidador (Autonomia)</span>
+                      <button type="button" className="btn-quick-loader" style={{ borderLeft: '4px solid var(--primary)' }} onClick={() => loadPredefinedTemplate('adulto')}>
+                        <span>📝 Anamnese Geral Adulto (CFP)</span>
                       </button>
                       <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('tcc')}>
                         <span>🧠 Formulação Cognitiva (TCC)</span>
+                      </button>
+                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('infantil')}>
+                        <span>👶 Infantil (Terceiros / Responsáveis)</span>
+                      </button>
+                      <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('idoso')}>
+                        <span>👵 Idoso / Cuidador (Terceiros)</span>
                       </button>
                     </div>
                   </div>
