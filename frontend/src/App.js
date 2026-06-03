@@ -469,7 +469,6 @@ function App() {
     setUsuario(null);
     setHistorico([]);
     setListaPacientes([]);
-    setListaConsultas([]);
     setFinanceiroData({ lancamentos: [], resumo: { total_receitas: 0, total_despesas: 0, lucro_liquido: 0 } });
     setListaPacotes([]);
     setPacienteSelecionado(null);
