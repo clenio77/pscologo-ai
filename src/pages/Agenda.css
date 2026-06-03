@@ -1,0 +1,323 @@
+.agenda-page {
+  width: 100%;
+}
+
+.agenda-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Calendário Principal */
+.calendar-main {
+  padding: 24px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.calendar-title-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.calendar-month-year {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background-color: var(--bg-hover);
+  color: var(--primary);
+  border-color: var(--primary-light);
+}
+
+.calendar-grid-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.calendar-grid-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(110px, auto);
+  border-left: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+}
+
+.calendar-cell {
+  background-color: var(--bg-card);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+.calendar-cell:hover {
+  background-color: var(--bg-hover);
+}
+
+.calendar-cell.outside-month {
+  background-color: #fafbfb;
+  color: #c3cfc7;
+}
+
+.calendar-cell.selected {
+  box-shadow: inset 0 0 0 2px var(--primary);
+  z-index: 10;
+}
+
+.calendar-cell.today {
+  background-color: #f1f7f2;
+}
+
+.calendar-cell.today .day-number {
+  background-color: var(--primary);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.day-number {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  align-self: flex-start;
+}
+
+.outside-month .day-number {
+  color: #c3cfc7;
+}
+
+.cell-appointments {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.cell-app-bullet {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  border-left: 3px solid transparent;
+}
+
+.cell-app-bullet.app-scheduled {
+  background-color: var(--info-bg);
+  color: var(--info);
+  border-left-color: var(--info);
+}
+
+.cell-app-bullet.app-completed {
+  background-color: var(--success-bg);
+  color: var(--success);
+  border-left-color: var(--success);
+}
+
+.cell-app-bullet.app-canceled {
+  background-color: var(--error-bg);
+  color: var(--error);
+  border-left-color: var(--error);
+}
+
+.cell-app-bullet.app-no_show {
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border-left-color: var(--warning);
+}
+
+.more-apps-indicator {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+  align-self: center;
+}
+
+/* Consultas do Dia (Lado Direito) */
+.agenda-day-details {
+  padding: 24px;
+  min-height: 480px;
+}
+
+.day-header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.day-header h3 {
+  font-size: 1.15rem;
+}
+
+.selected-day-lbl {
+  font-size: 0.82rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.empty-day-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  text-align: center;
+  color: var(--text-muted);
+  gap: 12px;
+}
+
+.empty-day-icon {
+  color: var(--border-color-hover);
+}
+
+.day-appointments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.day-app-card {
+  padding: 16px;
+  background-color: var(--bg-main);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--border-color);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.day-app-card:hover {
+  transform: translateX(3px);
+  background-color: #ebf1ec;
+}
+
+.status-border-scheduled { border-left-color: var(--info); }
+.status-border-completed { border-left-color: var(--success); }
+.status-border-canceled { border-left-color: var(--error); }
+.status-border-no_show { border-left-color: var(--warning); }
+
+.day-app-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.day-app-patient {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.patient-avatar-icon {
+  color: var(--primary);
+}
+
+.day-app-patient h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.day-app-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.day-app-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-icon-btn {
+  border: 1px solid var(--border-color);
+  background-color: white;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+}
+
+.action-icon-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary-light);
+  background-color: var(--bg-hover);
+}
+
+.action-icon-btn.whatsapp-color:hover {
+  background-color: #eafbee;
+  color: #25d366;
+  border-color: rgba(37, 211, 102, 0.3);
+}
+
+.detail-profile-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+@media (max-width: 992px) {
+  .agenda-grid {
+    grid-template-columns: 1fr;
+  }
+}
