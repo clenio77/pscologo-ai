@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
+import { getSecureItem, setSecureItem } from '../utils/crypto';
 
 // Tipo customizado para o perfil do profissional (SaaS/Multi-profissional)
 export interface ProfessionalProfile {
@@ -33,8 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured);
   const [user, setUser] = useState<ProfessionalProfile | null>(() => {
     if (!isSupabaseConfigured) {
-      const demoUserJson = localStorage.getItem('agenda_clinical_demo_user');
-      return demoUserJson ? JSON.parse(demoUserJson) : null;
+      return getSecureItem<ProfessionalProfile | null>('agenda_clinical_demo_user', null);
     }
     return null;
   });
@@ -127,12 +127,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: 'Dra. Clarice (Psicóloga)',
           specialty: 'Psicologia Clínica',
         };
-        localStorage.setItem('agenda_clinical_demo_user', JSON.stringify(mockProfile));
+        setSecureItem('agenda_clinical_demo_user', mockProfile);
         setUser(mockProfile);
         return { error: null };
       }
       // Permite criar logins fictícios em modo demo também para facilitar
-      const demoUsers: DemoUserRecord[] = JSON.parse(localStorage.getItem('agenda_clinical_demo_users_list') || '[]');
+      const demoUsers = getSecureItem<DemoUserRecord[]>('agenda_clinical_demo_users_list', []);
       const foundUser = demoUsers.find((u: DemoUserRecord) => u.email === email && u.password === password);
       
       if (foundUser) {
@@ -142,7 +142,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: foundUser.name,
           specialty: foundUser.specialty,
         };
-        localStorage.setItem('agenda_clinical_demo_user', JSON.stringify(mockProfile));
+        setSecureItem('agenda_clinical_demo_user', mockProfile);
         setUser(mockProfile);
         return { error: null };
       }
@@ -182,16 +182,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       };
 
       // Salva na lista global de usuários demo do navegador
-      const demoUsers: DemoUserRecord[] = JSON.parse(localStorage.getItem('agenda_clinical_demo_users_list') || '[]');
+      const demoUsers = getSecureItem<DemoUserRecord[]>('agenda_clinical_demo_users_list', []);
       if (demoUsers.some((u: DemoUserRecord) => u.email === email)) {
         return { error: 'Este e-mail já está cadastrado no modo demo.' };
       }
       
       demoUsers.push({ id: newId, email, password, name, specialty });
-      localStorage.setItem('agenda_clinical_demo_users_list', JSON.stringify(demoUsers));
+      setSecureItem('agenda_clinical_demo_users_list', demoUsers);
       
       // Define como usuário ativo
-      localStorage.setItem('agenda_clinical_demo_user', JSON.stringify(newProfile));
+      setSecureItem('agenda_clinical_demo_user', newProfile);
       setUser(newProfile);
       return { error: null };
     }
@@ -252,10 +252,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (isDemoMode) {
       // Atualiza usuário ativo
-      localStorage.setItem('agenda_clinical_demo_user', JSON.stringify(updatedProfile));
+      setSecureItem('agenda_clinical_demo_user', updatedProfile);
       
       // Atualiza lista global de usuários demo
-      const demoUsers: DemoUserRecord[] = JSON.parse(localStorage.getItem('agenda_clinical_demo_users_list') || '[]');
+      const demoUsers = getSecureItem<DemoUserRecord[]>('agenda_clinical_demo_users_list', []);
       const idx = demoUsers.findIndex((u) => u.id === user.id);
       if (idx !== -1) {
         demoUsers[idx] = {
@@ -265,7 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           register_number: registerNumber || undefined,
           phone: phone || undefined,
         };
-        localStorage.setItem('agenda_clinical_demo_users_list', JSON.stringify(demoUsers));
+        setSecureItem('agenda_clinical_demo_users_list', demoUsers);
       }
       
       setUser(updatedProfile);

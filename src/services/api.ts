@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { getSecureItem, setSecureItem } from '../utils/crypto';
 
 // Interfaces de Tipo
 export interface Patient {
@@ -69,14 +70,13 @@ const STORAGE_KEYS = {
   PATIENT_FORMS: 'clinical_demo_patient_forms',
 };
 
-// Funções Auxiliares do LocalStorage
+// Funções Auxiliares do LocalStorage Criptografado
 const getLocalStorage = <T>(key: string, defaultValue: T): T => {
-  const data = localStorage.getItem(key);
-  return data ? JSON.parse(data) : defaultValue;
+  return getSecureItem<T>(key, defaultValue);
 };
 
 const setLocalStorage = (key: string, data: unknown) => {
-  localStorage.setItem(key, JSON.stringify(data));
+  setSecureItem(key, data);
 };
 
 // ----------------------------------------------------
