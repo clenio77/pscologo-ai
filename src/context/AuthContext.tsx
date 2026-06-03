@@ -22,6 +22,7 @@ interface AuthContextType {
   user: ProfessionalProfile | null;
   loading: boolean;
   isDemoMode: boolean;
+  supabaseError: string | null;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, name: string, specialty: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return null;
   });
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [supabaseError, setSupabaseError] = useState<string | null>(null);
 
   // Função para buscar dados da tabela profiles
   const fetchProfile = async (supabaseUser: User) => {
@@ -111,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (err) {
         console.error('Erro ao buscar sessão inicial do Supabase, mudando para modo Demo:', err);
         if (isMounted) {
+          setSupabaseError(err instanceof Error ? err.message : String(err));
           setIsDemoMode(true);
         }
       } finally {
@@ -358,7 +361,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isDemoMode, login, signUp, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, isDemoMode, supabaseError, login, signUp, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

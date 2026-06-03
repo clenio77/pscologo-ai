@@ -4,7 +4,7 @@ import { Heart, ShieldAlert } from 'lucide-react';
 import './Login.css';
 
 export const Login: React.FC = () => {
-  const { login, signUp, isDemoMode } = useAuth();
+  const { login, signUp, isDemoMode, supabaseError } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   
   // States do formulário
@@ -104,8 +104,13 @@ export const Login: React.FC = () => {
                     demo@agenda.com / 123456
                   </code>
                 </p>
-                <div style={{ fontSize: '0.7rem', color: '#856404', marginTop: '6px', borderTop: '1px dashed rgba(0,0,0,0.1)', paddingTop: '6px', fontFamily: 'monospace' }}>
+                 <div style={{ fontSize: '0.7rem', color: '#856404', marginTop: '6px', borderTop: '1px dashed rgba(0,0,0,0.1)', paddingTop: '6px', fontFamily: 'monospace' }}>
                   Diag: URL = {import.meta.env.VITE_SUPABASE_URL ? `${import.meta.env.VITE_SUPABASE_URL.substring(0, 20)}... (${import.meta.env.VITE_SUPABASE_URL.length} chs)` : 'vazia'} | Key = {import.meta.env.VITE_SUPABASE_ANON_KEY ? `presente (${import.meta.env.VITE_SUPABASE_ANON_KEY.length} chs)` : 'vazia'}
+                  {supabaseError && (
+                    <div style={{ color: '#721c24', marginTop: '4px', fontWeight: 600 }}>
+                      Erro: {supabaseError}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
