@@ -20,7 +20,7 @@ import {
   ArrowLeft,
   User,
   ClipboardList,
-  Plus
+  Plus,
 } from 'lucide-react';
 
 import FinanceiroView from './components/FinanceiroView';
@@ -62,7 +62,7 @@ function App() {
   // Estados do Psicólogo
   const [listaPacientes, setListaPacientes] = useState([]);
   const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
-  
+
   // Cadastro de Paciente pelo Psicólogo
   const [showNovoPacienteForm, setShowNovoPacienteForm] = useState(false);
   const [novoPacNome, setNovoPacNome] = useState('');
@@ -70,7 +70,10 @@ function App() {
   const [novoPacSenha, setNovoPacSenha] = useState('');
 
   // Estados para Financeiro (Fase 4)
-  const [financeiroData, setFinanceiroData] = useState({ lancamentos: [], resumo: { total_receitas: 0, total_despesas: 0, lucro_liquido: 0 } });
+  const [financeiroData, setFinanceiroData] = useState({
+    lancamentos: [],
+    resumo: { total_receitas: 0, total_despesas: 0, lucro_liquido: 0 },
+  });
   const [listaPacotes, setListaPacotes] = useState([]);
 
   // Notas Clínicas do Psicólogo
@@ -87,7 +90,6 @@ function App() {
   const [listaTarefas, setListaTarefas] = useState([]);
   const [carregandoTarefas, setCarregandoTarefas] = useState(false);
 
-
   // Anamnese Clínica (Primeira Consulta)
   const [anamneseData, setAnamneseData] = useState({
     queixa_principal: '',
@@ -96,7 +98,7 @@ function App() {
     historico_medico: '',
     relacionamentos_sociais: '',
     expectativas_terapia: '',
-    observacoes_gerais: ''
+    observacoes_gerais: '',
   });
   const [carregandoAnamnese, setCarregandoAnamnese] = useState(false);
   const [salvandoAnamnese, setSalvandoAnamnese] = useState(false);
@@ -106,7 +108,7 @@ function App() {
   const [carregandoAvaliacoes, setCarregandoAvaliacoes] = useState(false);
   const [novaAvaliacaoTipo, setNovaAvaliacaoTipo] = useState('PHQ-9');
   const [respostasAvaliacao, setRespostasAvaliacao] = useState({});
-  
+
   // TCLE
   const [tcleAssinado, setTcleAssinado] = useState(true);
   const [dataAssinaturaTcle, setDataAssinaturaTcle] = useState(null);
@@ -152,7 +154,7 @@ function App() {
         historico_medico: '',
         relacionamentos_sociais: '',
         expectativas_terapia: '',
-        observacoes_gerais: ''
+        observacoes_gerais: '',
       });
       setListaAvaliacoes([]);
       setRespostasAvaliacao({});
@@ -177,23 +179,23 @@ function App() {
           email: novoPacEmail,
           senha: novoPacSenha,
           tipo: 'paciente',
-          psicologo_id: usuario.id
-        })
+          psicologo_id: usuario.id,
+        }),
       });
       const data = await resp.json();
       if (resp.ok) {
-        alert("Paciente cadastrado com sucesso!");
+        alert('Paciente cadastrado com sucesso!');
         setNovoPacNome('');
         setNovoPacEmail('');
         setNovoPacSenha('');
         setShowNovoPacienteForm(false);
         fetchPacientes();
       } else {
-        alert(data.erro || "Erro ao cadastrar paciente");
+        alert(data.erro || 'Erro ao cadastrar paciente');
       }
     } catch (err) {
       console.error(err);
-      alert("Erro de conexão");
+      alert('Erro de conexão');
     }
   };
 
@@ -207,8 +209,8 @@ function App() {
 
       const resp = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
 
       if (resp.status === 401) {
@@ -217,12 +219,14 @@ function App() {
       }
 
       const data = await resp.json();
-      setHistorico(data.map(item => ({
-        ...item,
-        sentimento: item.sentimento || 'Neutro'
-      })));
+      setHistorico(
+        data.map((item) => ({
+          ...item,
+          sentimento: item.sentimento || 'Neutro',
+        })),
+      );
     } catch (err) {
-      console.error("Erro ao carregar histórico:", err);
+      console.error('Erro ao carregar histórico:', err);
     }
   };
 
@@ -231,14 +235,14 @@ function App() {
     try {
       const resp = await fetch(`${API_BASE_URL}/pacientes`, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       if (resp.status === 401) return;
       const data = await resp.json();
       setListaPacientes(data);
     } catch (err) {
-      console.error("Erro ao carregar pacientes:", err);
+      console.error('Erro ao carregar pacientes:', err);
     }
   };
 
@@ -246,13 +250,13 @@ function App() {
     if (!usuario || usuario.tipo !== 'psicologo') return;
     try {
       const resp = await fetch(`${API_BASE_URL}/financeiro`, {
-        headers: { 'Authorization': `Bearer ${usuario.token}` }
+        headers: { Authorization: `Bearer ${usuario.token}` },
       });
       if (resp.status === 401) return;
       const data = await resp.json();
       setFinanceiroData(data);
     } catch (err) {
-      console.error("Erro ao buscar financeiro:", err);
+      console.error('Erro ao buscar financeiro:', err);
     }
   };
 
@@ -264,13 +268,13 @@ function App() {
         url += `?paciente_id=${pacienteId}`;
       }
       const resp = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${usuario.token}` }
+        headers: { Authorization: `Bearer ${usuario.token}` },
       });
       if (resp.status === 401) return;
       const data = await resp.json();
       setListaPacotes(data);
     } catch (err) {
-      console.error("Erro ao buscar pacotes:", err);
+      console.error('Erro ao buscar pacotes:', err);
     }
   };
 
@@ -289,8 +293,8 @@ function App() {
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/notas`, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       if (resp.status === 401) {
         handleLogout();
@@ -300,10 +304,10 @@ function App() {
       if (resp.ok) {
         setListaNotas(data);
       } else {
-        console.error("Erro ao buscar notas:", data.erro);
+        console.error('Erro ao buscar notas:', data.erro);
       }
     } catch (err) {
-      console.error("Erro de conexão ao buscar notas:", err);
+      console.error('Erro de conexão ao buscar notas:', err);
     } finally {
       setCarregandoNotas(false);
     }
@@ -312,48 +316,53 @@ function App() {
   const handleAdicionarNota = async (e) => {
     e.preventDefault();
     if (!usuario || usuario.tipo !== 'psicologo' || !pacienteSelecionado || !novaNotaConteudo.trim()) return;
-    
+
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteSelecionado.id}/notas`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${usuario.token}`
+          Authorization: `Bearer ${usuario.token}`,
         },
-        body: JSON.stringify({ conteudo: novaNotaConteudo })
+        body: JSON.stringify({ conteudo: novaNotaConteudo }),
       });
       const data = await resp.json();
       if (resp.ok) {
         setListaNotas([data.nota, ...listaNotas]);
         setNovaNotaConteudo('');
       } else {
-        alert(data.erro || "Erro ao adicionar nota");
+        alert(data.erro || 'Erro ao adicionar nota');
       }
     } catch (err) {
-      console.error("Erro de conexão ao criar nota:", err);
-      alert("Erro ao conectar com o servidor.");
+      console.error('Erro de conexão ao criar nota:', err);
+      alert('Erro ao conectar com o servidor.');
     }
   };
 
   const handleRemoverNota = async (notaId) => {
-    if (!usuario || usuario.tipo !== 'psicologo' || !window.confirm("Deseja realmente excluir esta nota? Ela não fará mais parte do prontuário inteligente.")) return;
-    
+    if (
+      !usuario ||
+      usuario.tipo !== 'psicologo' ||
+      !window.confirm('Deseja realmente excluir esta nota? Ela não fará mais parte do prontuário inteligente.')
+    )
+      return;
+
     try {
       const resp = await fetch(`${API_BASE_URL}/notas/${notaId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       const data = await resp.json();
       if (resp.ok) {
-        setListaNotas(listaNotas.filter(n => n.id !== notaId));
+        setListaNotas(listaNotas.filter((n) => n.id !== notaId));
       } else {
-        alert(data.erro || "Erro ao excluir nota");
+        alert(data.erro || 'Erro ao excluir nota');
       }
     } catch (err) {
-      console.error("Erro de conexão ao remover nota:", err);
-      alert("Erro ao conectar com o servidor.");
+      console.error('Erro de conexão ao remover nota:', err);
+      alert('Erro ao conectar com o servidor.');
     }
   };
 
@@ -363,8 +372,8 @@ function App() {
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/insights`, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       if (resp.status === 401) {
         handleLogout();
@@ -373,7 +382,7 @@ function App() {
       const data = await resp.json();
       setInsightsIA(data);
     } catch (err) {
-      console.error("Erro ao buscar insights IA:", err);
+      console.error('Erro ao buscar insights IA:', err);
     } finally {
       setCarregandoInsights(false);
     }
@@ -385,8 +394,8 @@ function App() {
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/tarefas`, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       if (resp.status === 401) {
         handleLogout();
@@ -396,10 +405,10 @@ function App() {
       if (resp.ok) {
         setListaTarefas(data);
       } else {
-        console.error("Erro ao buscar tarefas:", data.erro);
+        console.error('Erro ao buscar tarefas:', data.erro);
       }
     } catch (err) {
-      console.error("Erro de conexão ao buscar tarefas:", err);
+      console.error('Erro de conexão ao buscar tarefas:', err);
     } finally {
       setCarregandoTarefas(false);
     }
@@ -411,8 +420,8 @@ function App() {
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteId}/anamnese`, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       if (resp.status === 401) {
         handleLogout();
@@ -422,10 +431,10 @@ function App() {
       if (resp.ok) {
         setAnamneseData(data);
       } else {
-        console.error("Erro ao buscar anamnese:", data.erro);
+        console.error('Erro ao buscar anamnese:', data.erro);
       }
     } catch (err) {
-      console.error("Erro de conexão ao buscar anamnese:", err);
+      console.error('Erro de conexão ao buscar anamnese:', err);
     } finally {
       setCarregandoAnamnese(false);
     }
@@ -435,30 +444,30 @@ function App() {
     e.preventDefault();
     if (!usuario || usuario.tipo !== 'psicologo' || !pacienteSelecionado) return;
     setSalvandoAnamnese(true);
-    
+
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteSelecionado.id}/anamnese`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${usuario.token}`
+          Authorization: `Bearer ${usuario.token}`,
         },
-        body: JSON.stringify(anamneseData)
+        body: JSON.stringify(anamneseData),
       });
       const data = await resp.json();
       if (resp.ok) {
         setAnamneseData({
           ...anamneseData,
-          data_atualizacao: data.data_atualizacao
+          data_atualizacao: data.data_atualizacao,
         });
-        alert(data.mensagem || "Anamnese salva com sucesso!");
+        alert(data.mensagem || 'Anamnese salva com sucesso!');
         fetchInsights(pacienteSelecionado.id);
       } else {
-        alert(data.erro || "Erro ao salvar anamnese");
+        alert(data.erro || 'Erro ao salvar anamnese');
       }
     } catch (err) {
-      console.error("Erro ao salvar anamnese:", err);
-      alert("Erro ao conectar com o servidor.");
+      console.error('Erro ao salvar anamnese:', err);
+      alert('Erro ao conectar com o servidor.');
     } finally {
       setSalvandoAnamnese(false);
     }
@@ -489,7 +498,7 @@ function App() {
   useEffect(() => {
     if (!showSOS) {
       if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => { });
+        audioContextRef.current.close().catch(() => {});
         audioContextRef.current = null;
       }
       return;
@@ -529,7 +538,7 @@ function App() {
       clearInterval(interval);
       if (ctx.state !== 'closed') {
         masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
-        setTimeout(() => ctx.close().catch(() => { }), 1100);
+        setTimeout(() => ctx.close().catch(() => {}), 1100);
       }
     };
   }, [showSOS]);
@@ -572,10 +581,11 @@ function App() {
       const locutor = new SpeechSynthesisUtterance(chunks[currentChunk]);
       const vozes = window.speechSynthesis.getVoices();
 
-      const vozCalma = vozes.find(v => v.name.includes('Natural') && v.lang.includes('pt-BR')) ||
-        vozes.find(v => v.name.includes('Neural') && v.lang.includes('pt-BR')) ||
-        vozes.find(v => v.name.includes('Google') && v.lang.includes('pt-BR')) ||
-        vozes.find(v => v.lang.includes('pt-BR'));
+      const vozCalma =
+        vozes.find((v) => v.name.includes('Natural') && v.lang.includes('pt-BR')) ||
+        vozes.find((v) => v.name.includes('Neural') && v.lang.includes('pt-BR')) ||
+        vozes.find((v) => v.name.includes('Google') && v.lang.includes('pt-BR')) ||
+        vozes.find((v) => v.lang.includes('pt-BR'));
 
       if (vozCalma) locutor.voice = vozCalma;
       locutor.lang = 'pt-BR';
@@ -606,9 +616,15 @@ function App() {
 
   const SOSOverlay = () => (
     <motion.div className="sos-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <button className="close-sos" onClick={() => setShowSOS(false)}><X size={24} /></button>
+      <button className="close-sos" onClick={() => setShowSOS(false)}>
+        <X size={24} />
+      </button>
       <div className="breathing-container">
-        <motion.div className="breathing-circle" animate={{ scale: breathingStep === 'Inspire' || breathingStep === 'Segure' ? 1.5 : 1 }} transition={{ duration: 4, ease: "easeInOut" }}>
+        <motion.div
+          className="breathing-circle"
+          animate={{ scale: breathingStep === 'Inspire' || breathingStep === 'Segure' ? 1.5 : 1 }}
+          transition={{ duration: 4, ease: 'easeInOut' }}
+        >
           <Wind size={64} className="breathe-icon" />
         </motion.div>
         <h2 className="breathing-text">{breathingStep}</h2>
@@ -619,14 +635,14 @@ function App() {
 
   const deleteSessao = async (e, id) => {
     e.stopPropagation();
-    if (!window.confirm("Deseja apagar este registro do histórico?")) return;
+    if (!window.confirm('Deseja apagar este registro do histórico?')) return;
 
     try {
       const resp = await fetch(`${API_BASE_URL}/sessao/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
 
       if (resp.status === 401) {
@@ -641,7 +657,7 @@ function App() {
         setSessaoAtiva(null);
       }
     } catch (err) {
-      console.error("Erro ao deletar:", err);
+      console.error('Erro ao deletar:', err);
     }
   };
 
@@ -649,9 +665,9 @@ function App() {
     if (!searchTerm) return historico;
     const fuse = new Fuse(historico, {
       keys: ['transcricao', 'exercicio', 'sentimento'],
-      threshold: 0.4
+      threshold: 0.4,
     });
-    return fuse.search(searchTerm).map(result => result.item);
+    return fuse.search(searchTerm).map((result) => result.item);
   }, [historico, searchTerm]);
 
   const iniciarGravacao = async () => {
@@ -673,9 +689,9 @@ function App() {
           const resposta = await fetch(`${API_BASE_URL}/transcribe`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${usuario.token}`
+              Authorization: `Bearer ${usuario.token}`,
             },
-            body: formData
+            body: formData,
           });
 
           if (resposta.status === 401) {
@@ -690,12 +706,12 @@ function App() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${usuario.token}`
+              Authorization: `Bearer ${usuario.token}`,
             },
             body: JSON.stringify({
               transcricao: dados.transcricao,
-              contexto_anterior: exercicio
-            })
+              contexto_anterior: exercicio,
+            }),
           });
 
           if (respostaExercicio.status === 401) {
@@ -709,8 +725,8 @@ function App() {
           falar(exercicioData.exercicio);
           fetchHistorico();
         } catch (error) {
-          console.error("Erro ao processar áudio:", error);
-          setTranscricao("Erro na conexão com o assistente.");
+          console.error('Erro ao processar áudio:', error);
+          setTranscricao('Erro na conexão com o assistente.');
         } finally {
           setCarregando(false);
         }
@@ -724,8 +740,8 @@ function App() {
       setSessaoAtiva(null);
       window.speechSynthesis.cancel();
     } catch (err) {
-      console.error("Erro ao acessar microfone:", err);
-      alert("Por favor, permita o acesso ao microfone.");
+      console.error('Erro ao acessar microfone:', err);
+      alert('Por favor, permita o acesso ao microfone.');
     }
   };
 
@@ -733,7 +749,7 @@ function App() {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       setGravando(false);
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
     }
   };
 
@@ -758,49 +774,66 @@ function App() {
       laudo: getMatch('LAUDO'),
       mapa: getMatch('MAPA'),
       orientacao: getMatch('ORIENTACAO'),
-      sessao: getMatch('SESSAO')
+      sessao: getMatch('SESSAO'),
     };
 
     return (
       <div className="professional-analysis">
         {sections.abordagem && (
           <div className="analysis-section theory-badge">
-            <h4 style={{ color: '#ec4899' }}><Sparkles size={14} style={{ marginRight: 8 }} /> Base Teórica</h4>
-            <p className="theory-text"><strong>{sections.abordagem}</strong></p>
+            <h4 style={{ color: '#ec4899' }}>
+              <Sparkles size={14} style={{ marginRight: 8 }} /> Base Teórica
+            </h4>
+            <p className="theory-text">
+              <strong>{sections.abordagem}</strong>
+            </p>
           </div>
         )}
         {sections.laudo && (
           <div className="analysis-section">
-            <h4><ChevronRight size={14} /> Laudo de Acompanhamento</h4>
+            <h4>
+              <ChevronRight size={14} /> Laudo de Acompanhamento
+            </h4>
             <p className="clinical-text">{sections.laudo}</p>
           </div>
         )}
 
         {sections.mapa && (
           <div className="analysis-section sensitivity-map">
-            <h4><ChevronRight size={14} /> Mapa de Sensibilidade</h4>
+            <h4>
+              <ChevronRight size={14} /> Mapa de Sensibilidade
+            </h4>
             <div className="trigger-cloud">
-              {sections.mapa.split('\n').map((line, i) => line.trim() && (
-                <span key={i} className="trigger-tag">{line.replace(/^[-*]\s*/, '')}</span>
-              ))}
+              {sections.mapa.split('\n').map(
+                (line, i) =>
+                  line.trim() && (
+                    <span key={i} className="trigger-tag">
+                      {line.replace(/^[-*]\s*/, '')}
+                    </span>
+                  ),
+              )}
             </div>
           </div>
         )}
 
         {sections.orientacao && (
           <div className="analysis-section orientation">
-            <h4><ChevronRight size={14} /> Orientação Técnica</h4>
+            <h4>
+              <ChevronRight size={14} /> Orientação Técnica
+            </h4>
             <p>{sections.orientacao}</p>
           </div>
         )}
 
         {sections.sessao && (
           <div className="analysis-section preparation">
-            <h4><ChevronRight size={14} /> Pauta para Próxima Sessão</h4>
+            <h4>
+              <ChevronRight size={14} /> Pauta para Próxima Sessão
+            </h4>
             <ul>
-              {sections.sessao.split('\n').map((line, i) => line.trim() && (
-                <li key={i}>{line.replace(/^[-*]\s*/, '')}</li>
-              ))}
+              {sections.sessao
+                .split('\n')
+                .map((line, i) => line.trim() && <li key={i}>{line.replace(/^[-*]\s*/, '')}</li>)}
             </ul>
           </div>
         )}
@@ -812,23 +845,108 @@ function App() {
     return <LoginView setUsuario={setUsuario} API_BASE_URL={API_BASE_URL} />;
   }
 
-  
   const allProps = {
-    usuario, setUsuario, gravando, setGravando, transcricao, setTranscricao, exercicio, setExercicio,
-    carregando, setCarregando, historico, setHistorico, searchTerm, setSearchTerm, sessaoAtiva, setSessaoAtiva,
-    currentView, setCurrentView, showSOS, setShowSOS, breathingStep, setBreathingStep, falando, setFalando,
-    listaPacientes, setListaPacientes, pacienteSelecionado, setPacienteSelecionado, showNovoPacienteForm, setShowNovoPacienteForm,
-    novoPacNome, setNovoPacNome, novoPacEmail, setNovoPacEmail, novoPacSenha, setNovoPacSenha, financeiroData, setFinanceiroData,
-    listaPacotes, setListaPacotes, listaNotas, setListaNotas, novaNotaConteudo, setNovaNotaConteudo, carregandoNotas, setCarregandoNotas,
-    abordagemSelecionada, setAbordagemSelecionada, insightsIA, setInsightsIA, carregandoInsights, setCarregandoInsights,
-    listaTarefas, setListaTarefas, carregandoTarefas, setCarregandoTarefas, anamneseData, setAnamneseData, carregandoAnamnese,
-    setCarregandoAnamnese, salvandoAnamnese, setSalvandoAnamnese, listaAvaliacoes, setListaAvaliacoes, carregandoAvaliacoes,
-    setCarregandoAvaliacoes, novaAvaliacaoTipo, setNovaAvaliacaoTipo, respostasAvaliacao, setRespostasAvaliacao, tcleAssinado,
-    setTcleAssinado, dataAssinaturaTcle, setDataAssinaturaTcle, carregandoTcle, setCarregandoTcle,
-    handlePsicologoCadastrarPaciente, fetchHistorico, fetchPacientes, fetchFinanceiro, fetchPacotes, fetchTCLE, fetchDiario,
-    fetchNotas, handleAdicionarNota, handleRemoverNota, fetchInsights, fetchTarefas, fetchAnamnese, handleSalvarAnamnese,
-    handleLogout, falar, pararDeFalar, SOSOverlay, deleteSessao, filteredHistorico, iniciarGravacao, pararGravacao,
-    selecionarSessao, formatarAnalise, API_BASE_URL
+    usuario,
+    setUsuario,
+    gravando,
+    setGravando,
+    transcricao,
+    setTranscricao,
+    exercicio,
+    setExercicio,
+    carregando,
+    setCarregando,
+    historico,
+    setHistorico,
+    searchTerm,
+    setSearchTerm,
+    sessaoAtiva,
+    setSessaoAtiva,
+    currentView,
+    setCurrentView,
+    showSOS,
+    setShowSOS,
+    breathingStep,
+    setBreathingStep,
+    falando,
+    setFalando,
+    listaPacientes,
+    setListaPacientes,
+    pacienteSelecionado,
+    setPacienteSelecionado,
+    showNovoPacienteForm,
+    setShowNovoPacienteForm,
+    novoPacNome,
+    setNovoPacNome,
+    novoPacEmail,
+    setNovoPacEmail,
+    novoPacSenha,
+    setNovoPacSenha,
+    financeiroData,
+    setFinanceiroData,
+    listaPacotes,
+    setListaPacotes,
+    listaNotas,
+    setListaNotas,
+    novaNotaConteudo,
+    setNovaNotaConteudo,
+    carregandoNotas,
+    setCarregandoNotas,
+    abordagemSelecionada,
+    setAbordagemSelecionada,
+    insightsIA,
+    setInsightsIA,
+    carregandoInsights,
+    setCarregandoInsights,
+    listaTarefas,
+    setListaTarefas,
+    carregandoTarefas,
+    setCarregandoTarefas,
+    anamneseData,
+    setAnamneseData,
+    carregandoAnamnese,
+    setCarregandoAnamnese,
+    salvandoAnamnese,
+    setSalvandoAnamnese,
+    listaAvaliacoes,
+    setListaAvaliacoes,
+    carregandoAvaliacoes,
+    setCarregandoAvaliacoes,
+    novaAvaliacaoTipo,
+    setNovaAvaliacaoTipo,
+    respostasAvaliacao,
+    setRespostasAvaliacao,
+    tcleAssinado,
+    setTcleAssinado,
+    dataAssinaturaTcle,
+    setDataAssinaturaTcle,
+    carregandoTcle,
+    setCarregandoTcle,
+    handlePsicologoCadastrarPaciente,
+    fetchHistorico,
+    fetchPacientes,
+    fetchFinanceiro,
+    fetchPacotes,
+    fetchTCLE,
+    fetchDiario,
+    fetchNotas,
+    handleAdicionarNota,
+    handleRemoverNota,
+    fetchInsights,
+    fetchTarefas,
+    fetchAnamnese,
+    handleSalvarAnamnese,
+    handleLogout,
+    falar,
+    pararDeFalar,
+    SOSOverlay,
+    deleteSessao,
+    filteredHistorico,
+    iniciarGravacao,
+    pararGravacao,
+    selecionarSessao,
+    formatarAnalise,
+    API_BASE_URL,
   };
 
   if (usuario.tipo === 'psicologo') {

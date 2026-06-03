@@ -9,7 +9,7 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
     historico_medico: '',
     relacionamentos_sociais: '',
     expectativas_terapia: '',
-    observacoes_gerais: ''
+    observacoes_gerais: '',
   });
   const [carregandoAnamnese, setCarregandoAnamnese] = useState(false);
   const [salvandoAnamnese, setSalvandoAnamnese] = useState(false);
@@ -20,8 +20,8 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
     try {
       const resp = await fetch(`${API_BASE_URL}/paciente/${pacienteSelecionado.id}/anamnese`, {
         headers: {
-          'Authorization': `Bearer ${usuario.token}`
-        }
+          Authorization: `Bearer ${usuario.token}`,
+        },
       });
       if (resp.status === 401) {
         // Handle logout if needed, for now just fail silently
@@ -38,11 +38,11 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
           historico_medico: '',
           relacionamentos_sociais: '',
           expectativas_terapia: '',
-          observacoes_gerais: ''
+          observacoes_gerais: '',
         });
       }
     } catch (err) {
-      console.error("Erro ao buscar anamnese:", err);
+      console.error('Erro ao buscar anamnese:', err);
     } finally {
       setCarregandoAnamnese(false);
     }
@@ -62,24 +62,24 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${usuario.token}`
+          Authorization: `Bearer ${usuario.token}`,
         },
-        body: JSON.stringify(anamneseData)
+        body: JSON.stringify(anamneseData),
       });
-      
+
       const data = await resp.json();
       if (resp.ok) {
         setAnamneseData({
           ...anamneseData,
-          data_atualizacao: data.data_atualizacao || new Date().toLocaleString()
+          data_atualizacao: data.data_atualizacao || new Date().toLocaleString(),
         });
-        alert(data.mensagem || "Anamnese salva com sucesso!");
+        alert(data.mensagem || 'Anamnese salva com sucesso!');
       } else {
-        alert(data.erro || "Erro ao salvar anamnese");
+        alert(data.erro || 'Erro ao salvar anamnese');
       }
     } catch (err) {
-      console.error("Erro ao salvar anamnese:", err);
-      alert("Erro ao conectar com o servidor.");
+      console.error('Erro ao salvar anamnese:', err);
+      alert('Erro ao conectar com o servidor.');
     } finally {
       setSalvandoAnamnese(false);
     }
@@ -87,9 +87,34 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ background: 'rgba(15, 23, 42, 0.4)', border: '1px solid var(--glass-border)', padding: '2rem', borderRadius: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem', marginBottom: '2rem' }}>
-          <h3 style={{ margin: 0, fontFamily: 'Outfit, sans-serif', fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div
+        style={{
+          background: 'rgba(15, 23, 42, 0.4)',
+          border: '1px solid var(--glass-border)',
+          padding: '2rem',
+          borderRadius: '1.5rem',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            paddingBottom: '1rem',
+            marginBottom: '2rem',
+          }}
+        >
+          <h3
+            style={{
+              margin: 0,
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+            }}
+          >
             <ClipboardList size={24} style={{ color: 'var(--accent)' }} /> Ficha de Anamnese (Primeira Consulta)
           </h3>
           {anamneseData.data_atualizacao && (
@@ -100,14 +125,17 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
         </div>
 
         {carregandoAnamnese ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem' }}>Carregando dados da anamnese...</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', textAlign: 'center', padding: '2rem' }}>
+            Carregando dados da anamnese...
+          </p>
         ) : (
           <form onSubmit={handleSalvarAnamnese} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }} className="anamnese-grid">
-              
               {/* Queixa Principal */}
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>1. Queixa Principal e Motivo da Consulta</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  1. Queixa Principal e Motivo da Consulta
+                </label>
                 <textarea
                   placeholder="Descreva o motivo principal que levou o paciente a buscar terapia, sintomas iniciais relatados e a duração do problema..."
                   value={anamneseData.queixa_principal || ''}
@@ -122,14 +150,16 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
 
               {/* Histórico dos Sintomas */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>2. Histórico e Evolução dos Sintomas</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  2. Histórico e Evolução dos Sintomas
+                </label>
                 <textarea
                   placeholder="Quando os sintomas começaram? Fatores desencadeantes, intensidade, frequência e tentativas anteriores de manejo..."
                   value={anamneseData.historico_sintomas || ''}
@@ -144,14 +174,16 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
 
               {/* Histórico Familiar */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>3. Histórico Familiar e Dinâmica Relacional</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  3. Histórico Familiar e Dinâmica Relacional
+                </label>
                 <textarea
                   placeholder="Antecedentes psiquiátricos na família, relacionamento com parents/irmãos, ambiente familiar de infância e dinâmica atual..."
                   value={anamneseData.historico_familiar || ''}
@@ -166,14 +198,16 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
 
               {/* Histórico Médico */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>4. Histórico Médico e Clínico Geral</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  4. Histórico Médico e Clínico Geral
+                </label>
                 <textarea
                   placeholder="Uso de medicamentos contínuos, comorbidades, tratamentos médicos/psiquiátricos anteriores, sono e alimentação..."
                   value={anamneseData.historico_medico || ''}
@@ -188,14 +222,16 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
 
               {/* Relações Sociais */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>5. Relações Sociais e Trabalho/Estudo</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  5. Relações Sociais e Trabalho/Estudo
+                </label>
                 <textarea
                   placeholder="Rede de apoio (amigos, parceiro), ambiente de trabalho, satisfação profissional, atividades de lazer e hobbies..."
                   value={anamneseData.relacionamentos_sociais || ''}
@@ -210,14 +246,16 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
 
               {/* Expectativas Terapia */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>6. Expectativas e Objetivos da Terapia</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  6. Expectativas e Objetivos da Terapia
+                </label>
                 <textarea
                   placeholder="O que o paciente espera alcançar com a psicoterapia? Metas de curto e longo prazo acordadas..."
                   value={anamneseData.expectativas_terapia || ''}
@@ -232,14 +270,16 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
 
               {/* Observações Gerais */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>7. Observações Gerais do Terapeuta</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: '#cbd5e1', fontWeight: 500 }}>
+                  7. Observações Gerais do Terapeuta
+                </label>
                 <textarea
                   placeholder="Postura do paciente, nível de engajamento, percepções iniciais do terapeuta e hipóteses diagnósticas preliminares..."
                   value={anamneseData.observacoes_gerais || ''}
@@ -254,14 +294,21 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                     padding: '0.75rem',
                     resize: 'vertical',
                     fontSize: '0.9rem',
-                    lineHeight: '1.5'
+                    lineHeight: '1.5',
                   }}
                 />
               </div>
-
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                marginTop: '1rem',
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+                paddingTop: '1.5rem',
+              }}
+            >
               <button
                 type="submit"
                 disabled={salvandoAnamnese}
@@ -278,7 +325,7 @@ const AnamneseView = ({ usuario, API_BASE_URL, pacienteSelecionado }) => {
                   borderRadius: '0.8rem',
                   fontSize: '1rem',
                   fontWeight: 'bold',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
                 }}
               >
                 {salvandoAnamnese ? (

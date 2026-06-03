@@ -2,7 +2,25 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MessageSquare, Search, History, Mic, Square, Play, Sparkles, Trash2, Calendar, ChevronRight, Wind, BarChart3, X, LayoutDashboard, LogOut, ArrowLeft, User, ClipboardList, Plus
+  MessageSquare,
+  Search,
+  History,
+  Mic,
+  Square,
+  Play,
+  Sparkles,
+  Trash2,
+  Calendar,
+  ChevronRight,
+  Wind,
+  BarChart3,
+  X,
+  LayoutDashboard,
+  LogOut,
+  ArrowLeft,
+  User,
+  ClipboardList,
+  Plus,
 } from 'lucide-react';
 import FinanceiroView from './FinanceiroView';
 import DiarioEmocionalView from './DiarioEmocionalView';
@@ -16,23 +34,108 @@ import DashboardView from './DashboardView';
 
 export default function PacienteDashboard(props) {
   const {
-    usuario, setUsuario, gravando, setGravando, transcricao, setTranscricao, exercicio, setExercicio,
-    carregando, setCarregando, historico, setHistorico, searchTerm, setSearchTerm, sessaoAtiva, setSessaoAtiva,
-    currentView, setCurrentView, showSOS, setShowSOS, breathingStep, setBreathingStep, falando, setFalando,
-    listaPacientes, setListaPacientes, pacienteSelecionado, setPacienteSelecionado, showNovoPacienteForm, setShowNovoPacienteForm,
-    novoPacNome, setNovoPacNome, novoPacEmail, setNovoPacEmail, novoPacSenha, setNovoPacSenha, financeiroData, setFinanceiroData,
-    listaPacotes, setListaPacotes, listaNotas, setListaNotas, novaNotaConteudo, setNovaNotaConteudo, carregandoNotas, setCarregandoNotas,
-    abordagemSelecionada, setAbordagemSelecionada, insightsIA, setInsightsIA, carregandoInsights, setCarregandoInsights,
-    listaTarefas, setListaTarefas, carregandoTarefas, setCarregandoTarefas, anamneseData, setAnamneseData, carregandoAnamnese,
-    setCarregandoAnamnese, salvandoAnamnese, setSalvandoAnamnese, listaAvaliacoes, setListaAvaliacoes, carregandoAvaliacoes,
-    setCarregandoAvaliacoes, novaAvaliacaoTipo, setNovaAvaliacaoTipo, respostasAvaliacao, setRespostasAvaliacao, tcleAssinado,
-    setTcleAssinado, dataAssinaturaTcle, setDataAssinaturaTcle, carregandoTcle, setCarregandoTcle,
-    handlePsicologoCadastrarPaciente, fetchHistorico, fetchPacientes, fetchFinanceiro, fetchPacotes, fetchTCLE, fetchDiario,
-    fetchNotas, handleAdicionarNota, handleRemoverNota, fetchInsights, fetchTarefas, fetchAnamnese, handleSalvarAnamnese,
-    handleLogout, falar, pararDeFalar, SOSOverlay, deleteSessao, filteredHistorico, iniciarGravacao, pararGravacao,
-    selecionarSessao, formatarAnalise, API_BASE_URL
+    usuario,
+    setUsuario,
+    gravando,
+    setGravando,
+    transcricao,
+    setTranscricao,
+    exercicio,
+    setExercicio,
+    carregando,
+    setCarregando,
+    historico,
+    setHistorico,
+    searchTerm,
+    setSearchTerm,
+    sessaoAtiva,
+    setSessaoAtiva,
+    currentView,
+    setCurrentView,
+    showSOS,
+    setShowSOS,
+    breathingStep,
+    setBreathingStep,
+    falando,
+    setFalando,
+    listaPacientes,
+    setListaPacientes,
+    pacienteSelecionado,
+    setPacienteSelecionado,
+    showNovoPacienteForm,
+    setShowNovoPacienteForm,
+    novoPacNome,
+    setNovoPacNome,
+    novoPacEmail,
+    setNovoPacEmail,
+    novoPacSenha,
+    setNovoPacSenha,
+    financeiroData,
+    setFinanceiroData,
+    listaPacotes,
+    setListaPacotes,
+    listaNotas,
+    setListaNotas,
+    novaNotaConteudo,
+    setNovaNotaConteudo,
+    carregandoNotas,
+    setCarregandoNotas,
+    abordagemSelecionada,
+    setAbordagemSelecionada,
+    insightsIA,
+    setInsightsIA,
+    carregandoInsights,
+    setCarregandoInsights,
+    listaTarefas,
+    setListaTarefas,
+    carregandoTarefas,
+    setCarregandoTarefas,
+    anamneseData,
+    setAnamneseData,
+    carregandoAnamnese,
+    setCarregandoAnamnese,
+    salvandoAnamnese,
+    setSalvandoAnamnese,
+    listaAvaliacoes,
+    setListaAvaliacoes,
+    carregandoAvaliacoes,
+    setCarregandoAvaliacoes,
+    novaAvaliacaoTipo,
+    setNovaAvaliacaoTipo,
+    respostasAvaliacao,
+    setRespostasAvaliacao,
+    tcleAssinado,
+    setTcleAssinado,
+    dataAssinaturaTcle,
+    setDataAssinaturaTcle,
+    carregandoTcle,
+    setCarregandoTcle,
+    handlePsicologoCadastrarPaciente,
+    fetchHistorico,
+    fetchPacientes,
+    fetchFinanceiro,
+    fetchPacotes,
+    fetchTCLE,
+    fetchDiario,
+    fetchNotas,
+    handleAdicionarNota,
+    handleRemoverNota,
+    fetchInsights,
+    fetchTarefas,
+    fetchAnamnese,
+    handleSalvarAnamnese,
+    handleLogout,
+    falar,
+    pararDeFalar,
+    SOSOverlay,
+    deleteSessao,
+    filteredHistorico,
+    iniciarGravacao,
+    pararGravacao,
+    selecionarSessao,
+    formatarAnalise,
+    API_BASE_URL,
   } = props;
-
 
   const handleAssinarTCLE = async () => {
     setTcleAssinado(true);
@@ -40,21 +143,26 @@ export default function PacienteDashboard(props) {
 
   const getSentimentClass = (sentimento) => {
     switch (sentimento?.toLowerCase()) {
-      case 'positivo': return 'sentiment-positive';
-      case 'negativo': return 'sentiment-negative';
-      case 'neutro': return 'sentiment-neutral';
-      case 'alerta': return 'sentiment-alert';
-      default: return 'sentiment-neutral';
+      case 'positivo':
+        return 'sentiment-positive';
+      case 'negativo':
+        return 'sentiment-negative';
+      case 'neutro':
+        return 'sentiment-neutral';
+      case 'alerta':
+        return 'sentiment-alert';
+      default:
+        return 'sentiment-neutral';
     }
   };
 
   const copiarParaPsicologo = () => {
-      navigator.clipboard.writeText(exercicio);
-      alert("Resumo copiado!");
+    navigator.clipboard.writeText(exercicio);
+    alert('Resumo copiado!');
   };
-  
+
   const handleConcluirTarefa = (id, bool) => {
-      alert("Operação realizada (Simulado)");
+    alert('Operação realizada (Simulado)');
   };
 
   const TCLEModal = () => (
@@ -83,7 +191,9 @@ export default function PacienteDashboard(props) {
 
         <div className="sidebar-header">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 style={{ margin: 0 }}><History size={20} style={{ marginRight: 8 }} /> Histórico</h2>
+            <h2 style={{ margin: 0 }}>
+              <History size={20} style={{ marginRight: 8 }} /> Histórico
+            </h2>
             <button className="sos-btn-small" onClick={() => setShowSOS(true)} title="Modo SOS / Respiração">
               <Wind size={18} />
             </button>
@@ -97,28 +207,40 @@ export default function PacienteDashboard(props) {
           </button>
           <button
             className={`nav-btn ${currentView === 'agenda' ? 'active' : ''}`}
-            onClick={() => { setCurrentView('agenda'); }}
+            onClick={() => {
+              setCurrentView('agenda');
+            }}
             style={{ marginBottom: '8px' }}
           >
             <Calendar size={18} style={{ marginRight: 8 }} /> Minhas Consultas
           </button>
           <button
             className={`nav-btn ${currentView === 'financeiro' ? 'active' : ''}`}
-            onClick={() => { setCurrentView('financeiro'); fetchPacotes(); fetchFinanceiro(); }}
+            onClick={() => {
+              setCurrentView('financeiro');
+              fetchPacotes();
+              fetchFinanceiro();
+            }}
             style={{ marginBottom: '8px' }}
           >
             <BarChart3 size={18} style={{ marginRight: 8 }} /> Meus Pagamentos
           </button>
           <button
             className={`nav-btn ${currentView === 'tarefas' ? 'active' : ''}`}
-            onClick={() => { setCurrentView('tarefas'); fetchTarefas(usuario.id); }}
+            onClick={() => {
+              setCurrentView('tarefas');
+              fetchTarefas(usuario.id);
+            }}
             style={{ marginBottom: '8px' }}
           >
             <ClipboardList size={18} style={{ marginRight: 8 }} /> Minhas Tarefas
           </button>
           <button
             className={`nav-btn ${currentView === 'diario' ? 'active' : ''}`}
-            onClick={() => { setCurrentView('diario'); fetchDiario(); }}
+            onClick={() => {
+              setCurrentView('diario');
+              fetchDiario();
+            }}
             style={{ marginBottom: '1rem' }}
           >
             <MessageSquare size={18} style={{ marginRight: 8 }} /> Diário Emocional
@@ -148,7 +270,8 @@ export default function PacienteDashboard(props) {
             >
               <div className="history-item-content">
                 <div className="date">
-                  {item.data} • <span className={`sentiment-tag ${getSentimentClass(item.sentimento)}`}>{item.sentimento}</span>
+                  {item.data} •{' '}
+                  <span className={`sentiment-tag ${getSentimentClass(item.sentimento)}`}>{item.sentimento}</span>
                   <button className="delete-btn" onClick={(e) => deleteSessao(e, item.id)}>
                     <Trash2 size={14} />
                   </button>
@@ -166,27 +289,34 @@ export default function PacienteDashboard(props) {
       </aside>
 
       <main className="main-content">
-        <AnimatePresence>
-          {showSOS && <SOSOverlay />}
-        </AnimatePresence>
+        <AnimatePresence>{showSOS && <SOSOverlay />}</AnimatePresence>
 
         {currentView === 'dashboard' ? (
           <DashboardView historico={historico} setCurrentView={setCurrentView} />
         ) : currentView === 'agenda' ? (
           <div className="app-container" style={{ maxWidth: '900px' }}>
             <header className="header" style={{ marginBottom: '1.5rem' }}>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Agendamento de Sessões</h2>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>
+                Agendamento de Sessões
+              </h2>
               <p style={{ color: 'var(--text-muted)' }}>Agende e gerencie suas consultas presenciais ou online</p>
             </header>
-            <AgendaView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={pacienteSelecionado} listaPacientes={listaPacientes} />
+            <AgendaView
+              usuario={usuario}
+              API_BASE_URL={API_BASE_URL}
+              pacienteSelecionado={pacienteSelecionado}
+              listaPacientes={listaPacientes}
+            />
           </div>
         ) : currentView === 'financeiro' ? (
           <div className="app-container" style={{ maxWidth: '900px' }}>
             <header className="header" style={{ marginBottom: '1.5rem' }}>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Painel Financeiro</h2>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>
+                Painel Financeiro
+              </h2>
               <p style={{ color: 'var(--text-muted)' }}>Acompanhe seu saldo de sessões e histórico de faturas</p>
             </header>
-            <FinanceiroView 
+            <FinanceiroView
               usuario={usuario}
               API_BASE_URL={API_BASE_URL}
               pacienteSelecionado={pacienteSelecionado}
@@ -200,60 +330,114 @@ export default function PacienteDashboard(props) {
         ) : currentView === 'tarefas' ? (
           <div className="app-container" style={{ maxWidth: '900px' }}>
             <header className="header" style={{ marginBottom: '1.5rem' }}>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Minhas Tarefas</h2>
-              <p style={{ color: 'var(--text-muted)' }}>Atividades e reflexões prescritas pelo seu terapeuta para realizar durante a semana</p>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>
+                Minhas Tarefas
+              </h2>
+              <p style={{ color: 'var(--text-muted)' }}>
+                Atividades e reflexões prescritas pelo seu terapeuta para realizar durante a semana
+              </p>
             </header>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               {carregandoTarefas ? (
                 <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Carregando atividades...</p>
               ) : listaTarefas.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '4rem 1.5rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1.5rem', border: '1px dashed rgba(255,255,255,0.1)' }}>
-                  <ClipboardList size={40} style={{ color: 'var(--accent)', opacity: 0.3, marginBottom: '1rem', display: 'block', margin: '0 auto' }} />
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '4rem 1.5rem',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: '1.5rem',
+                    border: '1px dashed rgba(255,255,255,0.1)',
+                  }}
+                >
+                  <ClipboardList
+                    size={40}
+                    style={{
+                      color: 'var(--accent)',
+                      opacity: 0.3,
+                      marginBottom: '1rem',
+                      display: 'block',
+                      margin: '0 auto',
+                    }}
+                  />
                   <h4 style={{ color: 'white', marginBottom: '0.5rem' }}>Nenhuma tarefa pendente</h4>
                   <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '400px', margin: '0 auto' }}>
-                    Seu terapeuta irá prescrever exercícios ou leituras específicas por aqui quando necessário. Fique atento!
+                    Seu terapeuta irá prescrever exercícios ou leituras específicas por aqui quando necessário. Fique
+                    atento!
                   </p>
                 </div>
               ) : (
                 listaTarefas.map((tarefa) => (
-                  <div key={tarefa.id} style={{
-                    background: tarefa.concluida ? 'rgba(34, 197, 94, 0.02)' : 'rgba(15, 23, 42, 0.4)',
-                    border: tarefa.concluida ? '1px solid rgba(34, 197, 94, 0.15)' : '1px solid var(--glass-border)',
-                    padding: '1.5rem',
-                    borderRadius: '1.2rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    transition: 'all 0.3s ease'
-                  }}>
+                  <div
+                    key={tarefa.id}
+                    style={{
+                      background: tarefa.concluida ? 'rgba(34, 197, 94, 0.02)' : 'rgba(15, 23, 42, 0.4)',
+                      border: tarefa.concluida ? '1px solid rgba(34, 197, 94, 0.15)' : '1px solid var(--glass-border)',
+                      padding: '1.5rem',
+                      borderRadius: '1.2rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      transition: 'all 0.3s ease',
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <h3 style={{ margin: 0, color: 'white', fontSize: '1.25rem', fontFamily: 'Outfit, sans-serif' }}>{tarefa.titulo}</h3>
+                      <h3 style={{ margin: 0, color: 'white', fontSize: '1.25rem', fontFamily: 'Outfit, sans-serif' }}>
+                        {tarefa.titulo}
+                      </h3>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Criado em: {tarefa.data_criacao}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          Criado em: {tarefa.data_criacao}
+                        </span>
                         {tarefa.concluida && (
-                          <span style={{ fontSize: '0.7rem', background: 'rgba(34,197,94,0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>Concluído</span>
+                          <span
+                            style={{
+                              fontSize: '0.7rem',
+                              background: 'rgba(34,197,94,0.15)',
+                              color: '#4ade80',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            Concluído
+                          </span>
                         )}
                       </div>
                     </div>
-                    
-                    <p style={{
-                      color: '#cbd5e1',
-                      fontSize: '0.95rem',
-                      lineHeight: '1.6',
-                      margin: 0,
-                      background: 'rgba(0,0,0,0.15)',
-                      padding: '1rem',
-                      borderRadius: '0.75rem',
-                      whiteSpace: 'pre-wrap'
-                    }}>
+
+                    <p
+                      style={{
+                        color: '#cbd5e1',
+                        fontSize: '0.95rem',
+                        lineHeight: '1.6',
+                        margin: 0,
+                        background: 'rgba(0,0,0,0.15)',
+                        padding: '1rem',
+                        borderRadius: '0.75rem',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
                       {tarefa.descricao}
                     </p>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px', marginTop: '5px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        alignItems: 'center',
+                        gap: '12px',
+                        borderTop: '1px solid rgba(255,255,255,0.05)',
+                        paddingTop: '10px',
+                        marginTop: '5px',
+                      }}
+                    >
                       {tarefa.concluida ? (
                         <>
-                          <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>Concluída em: {tarefa.data_conclusao}</span>
+                          <span style={{ fontSize: '0.8rem', color: '#4ade80' }}>
+                            Concluída em: {tarefa.data_conclusao}
+                          </span>
                           <button
                             onClick={() => handleConcluirTarefa(tarefa.id, false)}
                             style={{
@@ -263,7 +447,7 @@ export default function PacienteDashboard(props) {
                               padding: '5px 12px',
                               borderRadius: '0.5rem',
                               fontSize: '0.8rem',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
                             }}
                           >
                             Refazer Tarefa
@@ -283,7 +467,7 @@ export default function PacienteDashboard(props) {
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '6px',
                           }}
                         >
                           Marcar como Concluída ✔️
@@ -298,7 +482,9 @@ export default function PacienteDashboard(props) {
         ) : currentView === 'diario' ? (
           <div className="app-container" style={{ maxWidth: '900px' }}>
             <header className="header" style={{ marginBottom: '1.5rem' }}>
-              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>Diário Emocional</h2>
+              <h2 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '2.5rem', fontWeight: '700' }}>
+                Diário Emocional
+              </h2>
               <p style={{ color: 'var(--text-muted)' }}>Acompanhe seu humor e seus sentimentos</p>
             </header>
             <DiarioEmocionalView usuario={usuario} API_BASE_URL={API_BASE_URL} pacienteSelecionado={null} />
@@ -306,19 +492,13 @@ export default function PacienteDashboard(props) {
         ) : (
           <div className="app-container">
             <header className="header">
-              <motion.h1
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
+              <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
                 Psicólogo IA
               </motion.h1>
               <p className="status-text">Seu suporte profissional e preparação para terapia</p>
             </header>
 
-            <motion.div
-              className="main-card"
-              layout
-            >
+            <motion.div className="main-card" layout>
               <section className="record-section">
                 <button
                   className={`pulse-button ${gravando ? 'recording' : ''}`}
@@ -327,12 +507,29 @@ export default function PacienteDashboard(props) {
                 >
                   {gravando ? <Square size={48} /> : <Mic size={48} />}
                 </button>
-                <div className="status-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div
+                  className="status-container"
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                >
                   <span className="status-text">
-                    {gravando ? 'Ouvindo desabafo...' : carregando ? 'Atualizando prontuário...' : exercicio ? 'Clique para dar seguimento' : 'Clique para começar a falar'}
+                    {gravando
+                      ? 'Ouvindo desabafo...'
+                      : carregando
+                        ? 'Atualizando prontuário...'
+                        : exercicio
+                          ? 'Clique para dar seguimento'
+                          : 'Clique para começar a falar'}
                   </span>
                   {exercicio && !carregando && !gravando && (
-                    <button className="reset-btn" onClick={() => { setTranscricao(''); setExercicio(''); setSessaoAtiva(null); window.speechSynthesis.cancel(); }}>
+                    <button
+                      className="reset-btn"
+                      onClick={() => {
+                        setTranscricao('');
+                        setExercicio('');
+                        setSessaoAtiva(null);
+                        window.speechSynthesis.cancel();
+                      }}
+                    >
                       Novo Desabafo
                     </button>
                   )}
@@ -348,8 +545,16 @@ export default function PacienteDashboard(props) {
                     exit={{ opacity: 0 }}
                   >
                     <div className="result-card">
-                      <h3><MessageSquare size={14} style={{ marginRight: 8 }} /> Seu Desabafo</h3>
-                      <p>{carregando && !transcricao ? <span className="loading-dots">Transcrevendo áudio</span> : transcricao}</p>
+                      <h3>
+                        <MessageSquare size={14} style={{ marginRight: 8 }} /> Seu Desabafo
+                      </h3>
+                      <p>
+                        {carregando && !transcricao ? (
+                          <span className="loading-dots">Transcrevendo áudio</span>
+                        ) : (
+                          transcricao
+                        )}
+                      </p>
                     </div>
 
                     {(exercicio || carregando) && (
@@ -358,7 +563,15 @@ export default function PacienteDashboard(props) {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                       >
-                        <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <div
+                          className="card-header"
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '1rem',
+                          }}
+                        >
                           <h3 style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
                             <Sparkles size={14} style={{ marginRight: 8 }} /> Análise e Preparação
                           </h3>
@@ -376,9 +589,13 @@ export default function PacienteDashboard(props) {
                                 <button
                                   onClick={falando ? pararDeFalar : () => falar(exercicio)}
                                   className="audio-control-btn"
-                                  title={falando ? "Parar áudio" : "Ouvir resposta"}
+                                  title={falando ? 'Parar áudio' : 'Ouvir resposta'}
                                 >
-                                  {falando ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+                                  {falando ? (
+                                    <Square size={16} fill="currentColor" />
+                                  ) : (
+                                    <Play size={16} fill="currentColor" />
+                                  )}
                                 </button>
                               </>
                             )}
@@ -402,5 +619,4 @@ export default function PacienteDashboard(props) {
       </main>
     </div>
   );
-
 }

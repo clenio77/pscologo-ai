@@ -21,7 +21,7 @@ const LoginView = ({ setUsuario, API_BASE_URL }) => {
             setAuthPsicologoId(data[0].id);
           }
         } catch (err) {
-          console.error("Erro ao buscar psicólogos:", err);
+          console.error('Erro ao buscar psicólogos:', err);
         }
       };
       fetchPsicologos();
@@ -35,19 +35,19 @@ const LoginView = ({ setUsuario, API_BASE_URL }) => {
       const resp = await fetch(`${API_BASE_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: authEmail, senha: authSenha, tipo: authTipo })
+        body: JSON.stringify({ email: authEmail, senha: authSenha, tipo: authTipo }),
       });
       const data = await resp.json();
-      
+
       if (resp.ok) {
         localStorage.setItem('usuario', JSON.stringify(data));
         setUsuario(data);
       } else {
-        alert(data.erro || "Login inválido");
+        alert(data.erro || 'Login inválido');
       }
     } catch (err) {
-      console.error("Erro ao fazer login", err);
-      alert("Erro de conexão");
+      console.error('Erro ao fazer login', err);
+      alert('Erro de conexão');
     } finally {
       setCarregando(false);
     }
@@ -61,11 +61,11 @@ const LoginView = ({ setUsuario, API_BASE_URL }) => {
         nome: authNome,
         email: authEmail,
         senha: authSenha,
-        tipo: authTipo
+        tipo: authTipo,
       };
       if (authTipo === 'paciente') {
         if (!authPsicologoId) {
-          alert("Por favor, selecione um psicólogo");
+          alert('Por favor, selecione um psicólogo');
           setCarregando(false);
           return;
         }
@@ -75,19 +75,19 @@ const LoginView = ({ setUsuario, API_BASE_URL }) => {
       const resp = await fetch(`${API_BASE_URL}/cadastro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       const data = await resp.json();
 
       if (resp.ok) {
-        alert("Cadastro realizado com sucesso! Faça login.");
+        alert('Cadastro realizado com sucesso! Faça login.');
         setAuthMode('login');
       } else {
-        alert(data.erro || "Erro no cadastro");
+        alert(data.erro || 'Erro no cadastro');
       }
     } catch (err) {
-      console.error("Erro ao cadastrar", err);
-      alert("Erro de conexão");
+      console.error('Erro ao cadastrar', err);
+      alert('Erro de conexão');
     } finally {
       setCarregando(false);
     }
@@ -157,14 +157,8 @@ const LoginView = ({ setUsuario, API_BASE_URL }) => {
           {authMode === 'cadastro' && authTipo === 'paciente' && (
             <div className="form-group">
               <label>Selecione o Psicólogo</label>
-              <select
-                value={authPsicologoId}
-                onChange={(e) => setAuthPsicologoId(e.target.value)}
-                required
-              >
-                {listaPsicologos.length === 0 && (
-                  <option value="">Nenhum psicólogo cadastrado</option>
-                )}
+              <select value={authPsicologoId} onChange={(e) => setAuthPsicologoId(e.target.value)} required>
+                {listaPsicologos.length === 0 && <option value="">Nenhum psicólogo cadastrado</option>}
                 {listaPsicologos.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nome} ({p.email})

@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { Download, CheckCircle, Clock } from 'lucide-react';
 
-const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiroData, setFinanceiroData, listaPacotes, fetchFinanceiro, fetchPacotes }) => {
+const FinanceiroView = ({
+  usuario,
+  API_BASE_URL,
+  pacienteSelecionado,
+  financeiroData,
+  setFinanceiroData,
+  listaPacotes,
+  fetchFinanceiro,
+  fetchPacotes,
+}) => {
   const [finTipo, setFinTipo] = useState('receita');
   const [finCategoria, setFinCategoria] = useState('sessao');
   const [finValor, setFinValor] = useState('');
   const [finDescricao, setFinDescricao] = useState('');
   const [finStatus, setFinStatus] = useState('pago');
-  
+
   const [pacSessoes, setPacSessoes] = useState('4');
   const [pacValorTotal, setPacValorTotal] = useState('');
 
@@ -19,7 +28,7 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${usuario.token}`
+          Authorization: `Bearer ${usuario.token}`,
         },
         body: JSON.stringify({
           tipo: finTipo,
@@ -27,16 +36,16 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
           valor: parseFloat(finValor),
           descricao: finDescricao,
           status: finStatus,
-          paciente_id: pacienteSelecionado ? pacienteSelecionado.id : null
-        })
+          paciente_id: pacienteSelecionado ? pacienteSelecionado.id : null,
+        }),
       });
       if (resp.ok) {
-        alert("Lançamento registrado!");
+        alert('Lançamento registrado!');
         setFinValor('');
         setFinDescricao('');
         fetchFinanceiro();
       } else {
-        alert("Erro ao registrar");
+        alert('Erro ao registrar');
       }
     } catch (err) {
       console.error(err);
@@ -51,21 +60,21 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${usuario.token}`
+          Authorization: `Bearer ${usuario.token}`,
         },
         body: JSON.stringify({
           paciente_id: pacienteSelecionado.id,
           quantidade_sessoes: parseInt(pacSessoes),
-          valor_total: parseFloat(pacValorTotal)
-        })
+          valor_total: parseFloat(pacValorTotal),
+        }),
       });
       if (resp.ok) {
-        alert("Pacote vendido com sucesso!");
+        alert('Pacote vendido com sucesso!');
         setPacValorTotal('');
         fetchPacotes(pacienteSelecionado.id);
         fetchFinanceiro();
       } else {
-        alert("Erro ao vender pacote");
+        alert('Erro ao vender pacote');
       }
     } catch (err) {
       console.error(err);
@@ -76,12 +85,12 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
     try {
       const resp = await fetch(`${API_BASE_URL}/pacotes/${pacoteId}/usar`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${usuario.token}` }
+        headers: { Authorization: `Bearer ${usuario.token}` },
       });
       if (resp.ok) {
         fetchPacotes(pacienteSelecionado.id);
       } else {
-        alert("Erro ao registrar sessão");
+        alert('Erro ao registrar sessão');
       }
     } catch (err) {
       console.error(err);
@@ -112,11 +121,22 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
           <div className="finance-form-side">
             {!pacienteSelecionado ? (
               <>
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', marginBottom: '1.25rem' }}>Lançar Transação</h3>
-                <form onSubmit={handleLancarTransacao} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', marginBottom: '1.25rem' }}>
+                  Lançar Transação
+                </h3>
+                <form
+                  onSubmit={handleLancarTransacao}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
+                >
                   <div className="form-group">
                     <label>Tipo</label>
-                    <select value={finTipo} onChange={(e) => { setFinTipo(e.target.value); setFinCategoria(e.target.value === 'receita' ? 'sessao' : 'aluguel'); }}>
+                    <select
+                      value={finTipo}
+                      onChange={(e) => {
+                        setFinTipo(e.target.value);
+                        setFinCategoria(e.target.value === 'receita' ? 'sessao' : 'aluguel');
+                      }}
+                    >
                       <option value="receita">Receita</option>
                       <option value="despesa">Despesa</option>
                     </select>
@@ -142,12 +162,24 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
 
                   <div className="form-group">
                     <label>Valor (R$)</label>
-                    <input type="number" step="0.01" placeholder="0,00" value={finValor} onChange={(e) => setFinValor(e.target.value)} required />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={finValor}
+                      onChange={(e) => setFinValor(e.target.value)}
+                      required
+                    />
                   </div>
 
                   <div className="form-group">
                     <label>Descrição</label>
-                    <input type="text" placeholder="Ex: Pagamento da consulta..." value={finDescricao} onChange={(e) => setFinDescricao(e.target.value)} />
+                    <input
+                      type="text"
+                      placeholder="Ex: Pagamento da consulta..."
+                      value={finDescricao}
+                      onChange={(e) => setFinDescricao(e.target.value)}
+                    />
                   </div>
 
                   <div className="form-group">
@@ -158,15 +190,39 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
                     </select>
                   </div>
 
-                  <button type="submit" className="action-btn-success" style={{ padding: '0.8rem', marginTop: '0.5rem', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: '0.8rem' }}>
+                  <button
+                    type="submit"
+                    className="action-btn-success"
+                    style={{
+                      padding: '0.8rem',
+                      marginTop: '0.5rem',
+                      background: 'var(--accent)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.8rem',
+                    }}
+                  >
                     Registrar Lançamento
                   </button>
                 </form>
               </>
             ) : (
               <>
-                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', marginBottom: '1.25rem' }}>Vender Pacote de Sessões</h3>
-                <form onSubmit={handleVenderPacote} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1.5rem', borderRadius: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', marginBottom: '1.25rem' }}>
+                  Vender Pacote de Sessões
+                </h3>
+                <form
+                  onSubmit={handleVenderPacote}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '1rem',
+                    background: 'rgba(255,255,255,0.02)',
+                    padding: '1.5rem',
+                    borderRadius: '1rem',
+                    border: '1px solid rgba(255,255,255,0.05)',
+                  }}
+                >
                   <div className="form-group">
                     <label>Qtd. de Sessões</label>
                     <select value={pacSessoes} onChange={(e) => setPacSessoes(e.target.value)}>
@@ -177,30 +233,62 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
                   </div>
                   <div className="form-group">
                     <label>Valor Total (R$)</label>
-                    <input type="number" step="0.01" placeholder="0,00" value={pacValorTotal} onChange={(e) => setPacValorTotal(e.target.value)} required />
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={pacValorTotal}
+                      onChange={(e) => setPacValorTotal(e.target.value)}
+                      required
+                    />
                   </div>
-                  <button type="submit" className="btn-primary" style={{ marginTop: '0.5rem' }}>Registrar Venda</button>
+                  <button type="submit" className="btn-primary" style={{ marginTop: '0.5rem' }}>
+                    Registrar Venda
+                  </button>
                 </form>
 
                 {listaPacotes.length > 0 && (
                   <div style={{ marginTop: '2rem' }}>
-                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', marginBottom: '1rem' }}>Pacotes Ativos</h3>
+                    <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.1rem', marginBottom: '1rem' }}>
+                      Pacotes Ativos
+                    </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {listaPacotes.map(pac => (
-                        <div key={pac.id} style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '0.8rem', border: '1px solid var(--glass-border)' }}>
+                      {listaPacotes.map((pac) => (
+                        <div
+                          key={pac.id}
+                          style={{
+                            background: 'rgba(0,0,0,0.2)',
+                            padding: '1rem',
+                            borderRadius: '0.8rem',
+                            border: '1px solid var(--glass-border)',
+                          }}
+                        >
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                             <span style={{ fontWeight: 'bold' }}>{pac.sessoes_restantes} sessões restantes</span>
                             <span style={{ color: 'var(--text-muted)' }}>de {pac.quantidade_sessoes} totais</span>
                           </div>
                           {pac.sessoes_restantes > 0 ? (
-                            <button 
+                            <button
                               onClick={() => handleRegistrarUsoPacote(pac.id)}
-                              style={{ width: '100%', padding: '6px', background: 'rgba(139, 92, 246, 0.2)', color: '#a78bfa', border: '1px solid rgba(139, 92, 246, 0.3)', borderRadius: '6px', cursor: 'pointer', marginTop: '8px' }}
+                              style={{
+                                width: '100%',
+                                padding: '6px',
+                                background: 'rgba(139, 92, 246, 0.2)',
+                                color: '#a78bfa',
+                                border: '1px solid rgba(139, 92, 246, 0.3)',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                marginTop: '8px',
+                              }}
                             >
                               Deduzir 1 Sessão
                             </button>
                           ) : (
-                            <div style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginTop: '8px' }}>Pacote Esgotado</div>
+                            <div
+                              style={{ color: '#ef4444', fontSize: '0.85rem', textAlign: 'center', marginTop: '8px' }}
+                            >
+                              Pacote Esgotado
+                            </div>
                           )}
                         </div>
                       ))}
@@ -213,22 +301,37 @@ const FinanceiroView = ({ usuario, API_BASE_URL, pacienteSelecionado, financeiro
         )}
 
         <div className="finance-list-side">
-          <h3 style={{ fontFamily: 'Outfit, sans-serif', fontSize: '1.3rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3
+            style={{
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: '1.3rem',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             Histórico de Transações
             {usuario.tipo === 'psicologo' && (
-              <button className="icon-btn" title="Exportar Relatório"><Download size={18} /></button>
+              <button className="icon-btn" title="Exportar Relatório">
+                <Download size={18} />
+              </button>
             )}
           </h3>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {financeiroData.lancamentos.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>Nenhum lançamento encontrado.</p>
+              <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+                Nenhum lançamento encontrado.
+              </p>
             ) : (
               financeiroData.lancamentos.map((item) => (
                 <div key={item.id} className="finance-item">
                   <div className="finance-item-info">
                     <span className="finance-item-title">{item.descricao || item.categoria}</span>
-                    <span className="finance-item-date">{item.data} • {item.paciente_nome || 'Clínica'}</span>
+                    <span className="finance-item-date">
+                      {item.data} • {item.paciente_nome || 'Clínica'}
+                    </span>
                   </div>
                   <div className="finance-item-status">
                     <span className={`finance-item-value ${item.tipo}`}>

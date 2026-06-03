@@ -17,7 +17,7 @@ export default function DocumentosView({ usuario, pacienteSelecionado, API_BASE_
         setDocumentos(data);
       }
     } catch (error) {
-      console.error("Erro ao carregar documentos", error);
+      console.error('Erro ao carregar documentos', error);
     }
   };
 
@@ -42,15 +42,15 @@ export default function DocumentosView({ usuario, pacienteSelecionado, API_BASE_
         body: formData,
       });
       if (response.ok) {
-        alert("Documento enviado com sucesso!");
+        alert('Documento enviado com sucesso!');
         setFile(null);
         fetchDocumentos();
       } else {
-        alert("Falha ao enviar documento.");
+        alert('Falha ao enviar documento.');
       }
     } catch (error) {
       console.error(error);
-      alert("Erro de conexão.");
+      alert('Erro de conexão.');
     } finally {
       setCarregando(false);
     }
@@ -59,7 +59,14 @@ export default function DocumentosView({ usuario, pacienteSelecionado, API_BASE_
   return (
     <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
       <div style={{ flex: '1 1 300px' }}>
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--glass-border)', padding: '2rem', borderRadius: '1.5rem' }}>
+        <div
+          style={{
+            background: 'var(--card-bg)',
+            border: '1px solid var(--glass-border)',
+            padding: '2rem',
+            borderRadius: '1.5rem',
+          }}
+        >
           <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Upload size={20} /> Novo Documento
           </h3>
@@ -93,7 +100,7 @@ export default function DocumentosView({ usuario, pacienteSelecionado, API_BASE_
           {documentos.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>Nenhum documento arquivado.</p>
           ) : (
-            documentos.map(doc => (
+            documentos.map((doc) => (
               <motion.div
                 key={doc.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -105,13 +112,31 @@ export default function DocumentosView({ usuario, pacienteSelecionado, API_BASE_
                   padding: '1.5rem',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'center',
                 }}
               >
                 <div>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{doc.nome_arquivo}</h4>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '4px', color: '#fff' }}>{doc.tipo_documento}</span>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: '0.85rem',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        background: 'rgba(255,255,255,0.1)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        color: '#fff',
+                      }}
+                    >
+                      {doc.tipo_documento}
+                    </span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Calendar size={12} />
                       {new Date(doc.data_upload).toLocaleDateString('pt-BR')}
@@ -124,7 +149,17 @@ export default function DocumentosView({ usuario, pacienteSelecionado, API_BASE_
                     target="_blank"
                     rel="noreferrer"
                     className="nav-btn"
-                    style={{ margin: 0, padding: '8px 16px', background: 'var(--accent)', color: 'white', display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none', borderRadius: '20px' }}
+                    style={{
+                      margin: 0,
+                      padding: '8px 16px',
+                      background: 'var(--accent)',
+                      color: 'white',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      textDecoration: 'none',
+                      borderRadius: '20px',
+                    }}
                   >
                     <Download size={14} /> Baixar
                   </a>
