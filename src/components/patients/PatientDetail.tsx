@@ -38,6 +38,7 @@ import { SentimentModal } from './SentimentModal';
 import { MetricsModal } from './MetricsModal';
 import { ProgressRadarModal } from './ProgressRadarModal';
 import { ReportExportModal } from './ReportExportModal';
+import { TestsModal } from './TestsModal';
 import type { AnalysisType } from '../../services/aiService';
 import type { PatientAnalysis } from '../../services/api';
 
@@ -58,6 +59,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
   const [patientAnalysis, setPatientAnalysis] = useState<PatientAnalysis | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [sentimentModalOpen, setSentimentModalOpen] = useState(false);
+  const [testsModalOpen, setTestsModalOpen] = useState(false);
   
   const [metricsModalOpen, setMetricsModalOpen] = useState(false);
   const [progressRadarModalOpen, setProgressRadarModalOpen] = useState(false);
@@ -233,8 +235,9 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
 
         {/* MÓDULO 2 */}
         <div className="module-section">
-          <h4 className="module-title">Módulo 2 — Prontuário Inteligente</h4>
+          <h4 className="module-title">Módulo 2 — Avaliação e Inteligência</h4>
           <div className="module-grid">
+            
             <div className="module-card ia" onClick={() => openAnalysis('freud')} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <Brain className="module-icon" size={24} />
@@ -257,19 +260,29 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <div className="module-icon-badge">
                 <Heart className="module-icon" size={24} />
               </div>
-              <h5>Análise humanista (Rogers)</h5>
-              <p>Autoconceito, incongruências entre self real e ideal, e nível de autoaceitação. Base para abordagem centrada na pessoa.</p>
+              <h5>Análise humanista (Carl Rogers)</h5>
+              <p>Grau de congruência do paciente, condições de valor percebidas e potencial de tendência atualizante.</p>
               <span className="badge-module badge-ia">IA</span>
             </div>
 
-            <div className="module-card ia" onClick={() => openAnalysis('synthesis')} style={{ cursor: 'pointer' }}>
-              <div className="module-icon-badge">
+            <div className="module-card ia" onClick={() => openAnalysis('synthesis')} style={{ cursor: 'pointer', border: '1px solid #7c3aed', backgroundColor: '#faf5ff' }}>
+              <div className="module-icon-badge" style={{ backgroundColor: '#7c3aed', color: 'white' }}>
                 <FileText className="module-icon" size={24} />
               </div>
-              <h5>Síntese clínica integrada</h5>
-              <p>Resumo unificado das três abordagens, hipótese diagnóstica e plano terapêutico sugerido. Editável pelo terapeuta.</p>
-              <span className="badge-module badge-ia">IA</span>
+              <h5>Síntese clínica (Editável)</h5>
+              <p>Consolidação das três análises em uma síntese única que o terapeuta pode revisar, editar e salvar como avaliação final do paciente.</p>
+              <span className="badge-module badge-ia" style={{ backgroundColor: '#7c3aed', color: 'white' }}>IA CORE</span>
             </div>
+
+            <div className="module-card" onClick={() => setTestsModalOpen(true)} style={{ cursor: 'pointer' }}>
+              <div className="module-icon-badge" style={{ backgroundColor: '#e6f4ea', color: '#137333' }}>
+                <FileText className="module-icon" size={24} />
+              </div>
+              <h5>Testes Psicológicos</h5>
+              <p>Registro de aplicação e resultados de testes aprovados pelo SATEPSI (fontes fundamentais de avaliação).</p>
+              <span className="badge-module badge-novo">SATEPSI</span>
+            </div>
+
           </div>
         </div>
 
@@ -359,12 +372,18 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
         evolutions={evolutions}
       />
 
+      <TestsModal
+        isOpen={testsModalOpen}
+        onClose={() => setTestsModalOpen(false)}
+        patient={patient}
+        professionalId={user?.id || ''}
+      />
+
       <ReportExportModal
         isOpen={reportExportModalOpen}
         onClose={() => setReportExportModalOpen(false)}
         patient={patient}
         evolutions={evolutions}
-        patientAnalysis={patientAnalysis}
       />
 
       <AnalysisModal

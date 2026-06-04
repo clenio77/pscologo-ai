@@ -801,6 +801,10 @@
     display: none !important;
   }
 
+  .print-only {
+    display: block !important;
+  }
+
   /* Faz com que a modal ocupe toda a tela para impressão */
   .modal-overlay {
     position: static;
@@ -822,5 +826,11 @@
   #printable-report {
     box-shadow: none !important;
     padding: 0 !important;
+  }
+}
+
+@media screen {
+  .print-only {
+    display: none !important;
   }
 }

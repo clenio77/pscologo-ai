@@ -83,6 +83,8 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
           previous_treatments: profile.previous_treatments || '',
           referral_source: profile.referral_source || '',
           health_insurance: profile.health_insurance || '',
+          document_requester: profile.document_requester || '',
+          document_purpose: profile.document_purpose || '',
         });
       } else {
         setFormData({ ...emptyProfile });
@@ -260,6 +262,44 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                     <p style={{ margin: '2px 0 0', fontWeight: 500 }}>
                       {new Date(patient.created_at).toLocaleDateString('pt-BR')}
                     </p>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '24px' }}>
+                  <h4 style={{ fontSize: '1rem', color: '#1e293b', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', marginBottom: '16px' }}>Emissão de Documentos (CFP)</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group">
+                      <label className="form-label">Solicitante (Padrão para documentos)</label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formData.document_requester || ''}
+                          onChange={e => handleChange('document_requester', e.target.value)}
+                          placeholder="Ex: Próprio paciente, Juiz da 2ª Vara, Empresa X"
+                        />
+                      ) : (
+                        <p style={{ margin: '2px 0 0', color: formData.document_requester ? 'var(--text-primary)' : '#94a3b8' }}>
+                          {formData.document_requester || '—'}
+                        </p>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Finalidade da Avaliação/Acompanhamento</label>
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={formData.document_purpose || ''}
+                          onChange={e => handleChange('document_purpose', e.target.value)}
+                          placeholder="Ex: Acompanhamento clínico, Cirurgia Bariátrica, Concurso"
+                        />
+                      ) : (
+                        <p style={{ margin: '2px 0 0', color: formData.document_purpose ? 'var(--text-primary)' : '#94a3b8' }}>
+                          {formData.document_purpose || '—'}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

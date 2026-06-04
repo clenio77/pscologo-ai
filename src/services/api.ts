@@ -97,6 +97,20 @@ export interface PatientProfile {
   previous_treatments?: string;
   referral_source?: string;
   health_insurance?: string;
+  document_requester?: string;
+  document_purpose?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PatientTest {
+  id: string;
+  patient_id: string;
+  professional_id: string;
+  test_name: string;
+  application_date: string;
+  objective?: string;
+  results_summary?: string;
   created_at: string;
   updated_at: string;
 }
@@ -330,5 +344,37 @@ export const api = {
 
     if (error) throw new Error(error.message);
     return data;
+  },
+
+  // TESTES PSICOLÓGICOS (SATEPSI)
+  async getPatientTests(patientId: string): Promise<PatientTest[]> {
+    const { data, error } = await supabase
+      .from('patient_tests')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('application_date', { ascending: false });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+  },
+
+  async addPatientTest(test: Omit<PatientTest, 'id' | 'created_at' | 'updated_at'>): Promise<PatientTest> {
+    const { data, error } = await supabase
+      .from('patient_tests')
+      .insert([test])
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  async deletePatientTest(testId: string): Promise<void> {
+    const { error } = await supabase
+      .from('patient_tests')
+      .delete()
+      .eq('id', testId);
+
+    if (error) throw new Error(error.message);
   }
 };

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import type { Patient, Evolution, PatientForm } from './api';
+import type { Patient, Evolution, PatientForm, PatientTest } from './api';
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -299,3 +299,92 @@ FORMATO DE RESPOSTA (JSON array):
   }
 };
 
+// ==========================================
+// MÓDULO 4 — GERADOR DE DOCUMENTOS OFICIAIS (CFP)
+// ==========================================
+
+export type CFPDocumentType = 'declaracao' | 'atestado' | 'relatorio' | 'laudo';
+
+export interface CFPDocumentDraft {
+  procedimento?: string;
+  analise?: string;
+  conclusao?: string;
+}
+
+export const generateCFPDocument = async (
+  type: CFPDocumentType,
+  patient: Patient,
+  evolutions: Evolution[],
+  tests: PatientTest[]
+): Promise<CFPDocumentDraft> => {
+  if (!ai) {
+    throw new Error('Chave da API do Gemini não configurada.');
+  }
+
+  if (type === 'declaracao') {
+    return {};
+  }
+
+  const sorted = [...evolutions].sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
+  const sessionsContext = sorted.map((e, i) => `Sessão ${i+1} (${e.session_date}): ${e.content}`).join('\n\n');
+  const testsContext = tests.map(t => `Teste: ${t.test_name} (Data: ${t.application_date})\nObjetivo: ${t.objective}\nResultados: ${t.results_summary}`).join('\n\n');
+
+  let prompt = `
+Você é um psicólogo clínico elaborando um documento oficial baseado na Resolução CFP nº 06/2019.
+O paciente é ${patient.name}.
+Você deve redigir os campos solicitados de forma estritamente profissional, impessoal e técnica.
+NUNCA transcreva as sessões literalmente. Agrupe as informações em uma síntese clínica sistêmica.
+
+CONTEXTO DAS SESSÕES:
+${sessionsContext || 'Nenhuma sessão registrada.'}
+
+TESTES PSICOLÓGICOS (FONTES FUNDAMENTAIS):
+${testsContext || 'Nenhum teste registrado.'}
+`;
+
+  if (type === 'atestado') {
+    prompt += `
+Documento: ATESTADO PSICOLÓGICO
+Gere apenas o texto para a "Descrição das condições psicológicas" e a conclusão do documento.
+Foque em atestar um estado psicológico atual com base nas sessões. 
+Seja muito breve e objetivo.
+Retorne um JSON: { "conclusao": "texto gerado..." }`;
+  } else if (type === 'relatorio') {
+    prompt += `
+Documento: RELATÓRIO PSICOLÓGICO
+Gere os textos para "Procedimento", "Análise" e "Conclusão".
+- Procedimento: Descreva de forma genérica como os atendimentos ocorreram, número de sessões e abordagens técnicas utilizadas. (Incorpore os testes aplicados, se houver).
+- Análise: Síntese da evolução do caso, principais construtos observados. Baseado nos dados coletados, sem expor intimidades desnecessárias.
+- Conclusão: Encaminhamentos e orientações sugeridas.
+Retorne um JSON: { "procedimento": "...", "analise": "...", "conclusao": "..." }`;
+  } else if (type === 'laudo') {
+    prompt += `
+Documento: LAUDO PSICOLÓGICO
+Gere os textos para "Procedimento", "Análise" e "Conclusão".
+Este documento requer fundamentação mais técnica, focado nos resultados da avaliação psicológica (testes) e hipótese diagnóstica.
+- Procedimento: Descreva as técnicas e testes utilizados detalhadamente.
+- Análise: Análise cruzada das sessões com os testes aplicados, apresentando fundamentação técnica.
+- Conclusão: Diagnóstico, prognóstico, hipótese diagnóstica e sugestão terapêutica.
+Retorne um JSON: { "procedimento": "...", "analise": "...", "conclusao": "..." }`;
+  }
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+      }
+    });
+
+    if (!response.text) {
+      throw new Error('Resposta vazia da IA.');
+    }
+
+    return JSON.parse(response.text) as CFPDocumentDraft;
+  } catch (error) {
+    console.error('Erro ao gerar rascunho de documento:', error);
+    throw new Error('Falha ao gerar documento oficial.');
+  }
+};
