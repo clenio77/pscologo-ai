@@ -309,138 +309,206 @@ export const Patients: React.FC = () => {
       {/* MODAL 3: APLICAR FORMULÁRIO DE ANAMNESE */}
       {isApplyFormModalOpen && selectedPatient && (
         <div className="modal-overlay">
-          <div className="modal-content animate-slide-up" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h3>Aplicar Ficha de Anamnese / Formulário</h3>
+          <div className="modal-content animate-slide-up" style={{ maxWidth: '700px', width: '95%', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-header" style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color, #e1ebe3)' }}>
+              <h3 style={{ fontSize: '1.2rem', color: 'var(--text-main, #2b3a30)' }}>Aplicar Ficha de Anamnese / Formulário</h3>
               <button className="close-modal-btn" onClick={() => setIsApplyFormModalOpen(false)}>
                 <X size={20} />
               </button>
             </div>
-            <form onSubmit={handleApplyForm}>
-              <div className="modal-body">
-                 <div className="form-group">
-                  <label className="form-label">Selecione o Modelo de Formulário</label>
-                  <select 
-                    className="form-control"
-                    value={selectedTemplateId}
-                    onChange={(e) => {
-                      setSelectedTemplateId(e.target.value);
-                      setFormAnswers({});
-                    }}
-                    required
-                  >
-                    {templates.map(t => (
-                      <option key={t.id} value={t.id}>{t.title}</option>
-                    ))}
-                  </select>
+            <form onSubmit={handleApplyForm} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+              <div className="modal-body" style={{ overflowY: 'auto', flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px', backgroundColor: 'var(--bg-soft, #f7faf8)' }}>
+                
+                {/* Cabeçalho de Contexto do Paciente */}
+                <div className="modal-patient-context" style={{ padding: '14px 18px', background: 'var(--primary-light, #6c9a75)', color: 'white', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 500, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                  <span>Paciente em atendimento:</span>
+                  <strong>{selectedPatient.name}</strong>
                 </div>
 
-                <div className="form-group" style={{ marginTop: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {/* Seleção do Roteiro */}
+                <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color, #e1ebe3)', boxShadow: '0 2px 5px rgba(43, 58, 48, 0.02)' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-main, #2b3a30)', marginBottom: '8px' }}>
+                      Selecione o Modelo de Formulário
+                    </label>
+                    <select 
+                      className="form-control"
+                      value={selectedTemplateId}
+                      onChange={(e) => {
+                        setSelectedTemplateId(e.target.value);
+                        setFormAnswers({});
+                      }}
+                      required
+                      style={{ height: '42px', fontSize: '0.95rem', borderRadius: '8px' }}
+                    >
+                      {templates.map(t => (
+                        <option key={t.id} value={t.id}>{t.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Bloco de Respondente de Terceiros */}
+                <div className="respondent-selection-box" style={{
+                  backgroundColor: 'white',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color, #e1ebe3)',
+                  boxShadow: '0 2px 5px rgba(43, 58, 48, 0.02)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '14px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <input 
                       type="checkbox"
                       id="third-party-respondent"
-                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                      style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary)' }}
                       checked={isRespondentThirdParty}
                       onChange={(e) => setIsRespondentThirdParty(e.target.checked)}
                     />
-                    <label htmlFor="third-party-respondent" style={{ fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer' }}>
-                      Respondido por um familiar / responsável (Terceiros)
+                    <label htmlFor="third-party-respondent" style={{ fontSize: '0.92rem', fontWeight: 600, cursor: 'pointer', color: 'var(--text-main, #2b3a30)' }}>
+                      Ficha respondida por um familiar ou terceiro (mãe, pai, filho, cuidador)
                     </label>
                   </div>
+                  
+                  {isRespondentThirdParty && (
+                    <div className="grid grid-2 gap-4 animate-slide-up" style={{ boxSizing: 'border-box', borderTop: '1px dashed var(--border-color)', paddingTop: '14px', marginTop: '4px' }}>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Nome do Familiar Respondente</label>
+                        <input 
+                          type="text"
+                          className="form-control"
+                          placeholder="Ex: Maria Pereira"
+                          value={respName}
+                          onChange={(e) => setRespName(e.target.value)}
+                          required={isRespondentThirdParty}
+                          style={{ backgroundColor: 'var(--bg-soft, #f7faf8)', borderRadius: '8px', height: '40px' }}
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>Grau de Parentesco / Vínculo</label>
+                        <input 
+                          type="text"
+                          className="form-control"
+                          placeholder="Ex: Mãe, Filho, Cuidador..."
+                          value={respRelationship}
+                          onChange={(e) => setRespRelationship(e.target.value)}
+                          required={isRespondentThirdParty}
+                          style={{ backgroundColor: 'var(--bg-soft, #f7faf8)', borderRadius: '8px', height: '40px' }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {isRespondentThirdParty && (
-                  <div className="grid grid-2 gap-4 animate-slide-up" style={{ marginTop: '12px', background: 'var(--bg-main)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: '0.82rem' }}>Nome do Responsável</label>
-                      <input 
-                        type="text"
-                        className="form-control"
-                        placeholder="Ex: Maria Pereira"
-                        value={respName}
-                        onChange={(e) => setRespName(e.target.value)}
-                        required={isRespondentThirdParty}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" style={{ fontSize: '0.82rem' }}>Parentesco / Vínculo</label>
-                      <input 
-                        type="text"
-                        className="form-control"
-                        placeholder="Ex: Mãe, Filho, Cuidador..."
-                        value={respRelationship}
-                        onChange={(e) => setRespRelationship(e.target.value)}
-                        required={isRespondentThirdParty}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <hr style={{ margin: '16px 0', borderColor: 'var(--border-color)' }} />
-
-                {/* Renderização Dinâmica dos Campos do Formulário */}
+                {/* Renderização Dinâmica dos Campos do Formulário em Cards individuais */}
                 <div className="dynamic-form-fields" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {templates.find(t => t.id === selectedTemplateId)?.fields.map((field) => (
-                    <div key={field.id} className="form-group">
-                      <label className="form-label">
-                        {field.label} {field.required && <span style={{ color: 'var(--error)' }}>*</span>}
-                      </label>
+                  {templates.find(t => t.id === selectedTemplateId)?.fields.map((field) => {
+                    // Helper de parsing do label (separa Título de Descrição caso haja dois pontos)
+                    const hasColon = field.label.includes(':');
+                    let title = field.label;
+                    let subtitle = '';
 
-                      {field.type === 'text' && (
-                        <input 
-                          type="text" 
-                          className="form-control"
-                          value={String(formAnswers[field.label] || '')}
-                          onChange={(e) => handleAnswerChange(field.label, e.target.value)}
-                          required={field.required}
-                        />
-                      )}
+                    if (hasColon) {
+                      const index = field.label.indexOf(':');
+                      title = field.label.substring(0, index).trim();
+                      subtitle = field.label.substring(index + 1).trim();
+                    }
 
-                      {field.type === 'textarea' && (
-                        <textarea 
-                          className="form-control"
-                          rows={3}
-                          value={String(formAnswers[field.label] || '')}
-                          onChange={(e) => handleAnswerChange(field.label, e.target.value)}
-                          required={field.required}
-                        />
-                      )}
+                    // Corrige caps lock de títulos se for totalmente em maiúsculas
+                    const formatTitle = (t: string) => {
+                      if (t === t.toUpperCase() && t.length > 5) {
+                        return t.toLowerCase().replace(/(^\w{1})|(\s+\w{1})/g, letter => letter.toUpperCase());
+                      }
+                      return t;
+                    };
 
-                      {field.type === 'select' && (
-                        <select 
-                          className="form-control"
-                          value={String(formAnswers[field.label] || '')}
-                          onChange={(e) => handleAnswerChange(field.label, e.target.value)}
-                          required={field.required}
-                        >
-                          <option value="">Selecione...</option>
-                          {field.options?.map(opt => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                      )}
-
-                      {field.type === 'checkbox' && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0' }}>
-                          <input 
-                            type="checkbox"
-                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                            checked={Boolean(formAnswers[field.label] || false)}
-                            onChange={(e) => handleAnswerChange(field.label, e.target.checked)}
-                          />
-                          <span style={{ fontSize: '0.95rem' }}>Confirmar item</span>
+                    return (
+                      <div key={field.id} className="dynamic-field-card" style={{
+                        backgroundColor: 'white',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        border: '1px solid var(--border-color, #e1ebe3)',
+                        boxShadow: '0 2px 5px rgba(43, 58, 48, 0.02)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
+                      }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-main, #2b3a30)' }}>
+                            {formatTitle(title)} {field.required && <span style={{ color: 'var(--error, #dc3545)' }}>*</span>}
+                          </label>
+                          {subtitle && (
+                            <span style={{ display: 'block', fontSize: '0.82rem', color: 'var(--text-muted, #5e6f64)', marginTop: '4px', lineHeight: '1.4' }}>
+                              {subtitle}
+                            </span>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {field.type === 'text' && (
+                          <input 
+                            type="text" 
+                            className="form-control"
+                            value={String(formAnswers[field.label] || '')}
+                            onChange={(e) => handleAnswerChange(field.label, e.target.value)}
+                            required={field.required}
+                            placeholder="Escreva a resposta curta..."
+                            style={{ padding: '10px 14px', borderRadius: '8px', height: '40px' }}
+                          />
+                        )}
+
+                        {field.type === 'textarea' && (
+                          <textarea 
+                            className="form-control"
+                            rows={3}
+                            value={String(formAnswers[field.label] || '')}
+                            onChange={(e) => handleAnswerChange(field.label, e.target.value)}
+                            required={field.required}
+                            placeholder="Escreva o relato ou observação clínica do campo..."
+                            style={{ padding: '12px 14px', borderRadius: '8px', minHeight: '80px', resize: 'vertical' }}
+                          />
+                        )}
+
+                        {field.type === 'select' && (
+                          <select 
+                            className="form-control"
+                            value={String(formAnswers[field.label] || '')}
+                            onChange={(e) => handleAnswerChange(field.label, e.target.value)}
+                            required={field.required}
+                            style={{ padding: '10px 14px', borderRadius: '8px', height: '42px' }}
+                          >
+                            <option value="">Selecione uma opção...</option>
+                            {field.options?.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        )}
+
+                        {field.type === 'checkbox' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 0' }}>
+                            <input 
+                              type="checkbox"
+                              id={`check-${field.id}`}
+                              style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                              checked={Boolean(formAnswers[field.label] || false)}
+                              onChange={(e) => handleAnswerChange(field.label, e.target.checked)}
+                            />
+                            <label htmlFor={`check-${field.id}`} style={{ fontSize: '0.9rem', color: 'var(--text-main, #2b3a30)', cursor: 'pointer' }}>
+                              Confirmar / Assinalar item
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsApplyFormModalOpen(false)}>
+              <div className="modal-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color, #e1ebe3)', backgroundColor: 'white', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setIsApplyFormModalOpen(false)} style={{ borderRadius: '8px', height: '40px', padding: '0 20px' }}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="btn btn-primary" style={{ borderRadius: '8px', height: '40px', padding: '0 20px' }}>
                   Concluir e Salvar Respostas
                 </button>
               </div>
