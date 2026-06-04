@@ -43,6 +43,7 @@ export const Agenda: React.FC = () => {
   const [appDate, setAppDate] = useState('');
   const [appTime, setAppTime] = useState('08:00');
   const [appDuration, setAppDuration] = useState(50);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [appNotes, setAppNotes] = useState('');
 
   const loadData = useCallback(async () => {
@@ -139,8 +140,9 @@ export const Agenda: React.FC = () => {
 
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !selectedPatientId) return;
+    if (!user || !selectedPatientId || isSubmitting) return;
 
+    setIsSubmitting(true);
     try {
       const dateTimeString = `${appDate}T${appTime}:00`;
       const newStart = new Date(dateTimeString);
@@ -154,11 +156,17 @@ export const Agenda: React.FC = () => {
         const appStart = new Date(app.date_time);
         const appEnd = new Date(appStart.getTime() + (app.duration_minutes || 50) * 60000);
 
+        // A overlap condition is when newStart < appEnd AND newEnd > appStart
+        // But what if newStart matches exactly with appStart? That's an overlap.
+        // Let's make sure it handles identical start times directly too.
+        if (newStart.getTime() === appStart.getTime()) return true;
+
         return newStart < appEnd && newEnd > appStart;
       });
 
       if (hasOverlap) {
         addToast('Conflito de horário! Você já possui uma consulta agendada que sobrepõe este período.', 'error');
+        setIsSubmitting(false);
         return;
       }
 
@@ -177,6 +185,8 @@ export const Agenda: React.FC = () => {
     } catch (err) {
       console.error('Erro ao agendar consulta:', err);
       addToast('Erro ao agendar consulta. Tente novamente.', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -480,8 +490,12 @@ export const Agenda: React.FC = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => setIsAppointmentModalOpen(false)}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={patients.length === 0}>
-                    Salvar Consulta
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    disabled={patients.length === 0 || isSubmitting}
+                  >
+                    {isSubmitting ? 'Agendando...' : 'Salvar Consulta'}
                   </button>
                 </div>
               </form>
