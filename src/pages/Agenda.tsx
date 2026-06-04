@@ -143,10 +143,29 @@ export const Agenda: React.FC = () => {
 
     try {
       const dateTimeString = `${appDate}T${appTime}:00`;
+      const newStart = new Date(dateTimeString);
+      const newEnd = new Date(newStart.getTime() + appDuration * 60000);
+
+      // Verifica colisão de horários
+      const hasOverlap = appointments.some(app => {
+        // Ignora os agendamentos que foram cancelados
+        if (app.status === 'canceled') return false;
+
+        const appStart = new Date(app.date_time);
+        const appEnd = new Date(appStart.getTime() + (app.duration_minutes || 50) * 60000);
+
+        return newStart < appEnd && newEnd > appStart;
+      });
+
+      if (hasOverlap) {
+        addToast('Conflito de horário! Você já possui uma consulta agendada que sobrepõe este período.', 'error');
+        return;
+      }
+
       await api.createAppointment({
         professional_id: user.id,
         patient_id: selectedPatientId,
-        date_time: new Date(dateTimeString).toISOString(),
+        date_time: newStart.toISOString(),
         duration_minutes: appDuration,
         status: 'scheduled',
         notes: appNotes || undefined,
