@@ -1,9 +1,37 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.svg', 'app-icon.svg', 'manifest.json'],
+      manifest: {
+        name: 'Agenda Clinical',
+        short_name: 'AgendaClin',
+        description: 'Plataforma clínica para psicólogos: agenda, prontuários, evoluções e formulários de anamnese.',
+        theme_color: '#4a7c59',
+        background_color: '#eaf2eb',
+        display: 'standalone',
+        icons: [
+          {
+            src: 'app-icon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml',
+            purpose: 'any maskable'
+          },
+          {
+            src: 'favicon.svg',
+            sizes: 'any',
+            type: 'image/svg+xml'
+          }
+        ]
+      }
+    })
+  ],
   build: {
     rollupOptions: {
       output: {

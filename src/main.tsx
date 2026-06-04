@@ -9,16 +9,16 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Registro do Service Worker (PWA)
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js', { scope: '/' })
-      .then((registration) => {
-        console.log('[PWA] Service Worker registrado com sucesso:', registration.scope);
-      })
-      .catch((error) => {
-        console.warn('[PWA] Falha ao registrar Service Worker:', error);
-      });
-  });
-}
+// Registro do Service Worker (PWA) via vite-plugin-pwa
+import { registerSW } from 'virtual:pwa-register'
+
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm('Nova versão disponível. Deseja atualizar agora?')) {
+      updateSW(true)
+    }
+  },
+  onOfflineReady() {
+    console.log('[PWA] O aplicativo está pronto para uso offline.')
+  },
+})
