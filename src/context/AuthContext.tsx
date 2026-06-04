@@ -1,8 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../services/supabaseClient';
+import { supabase } from '../services/supabaseClient';
 import type { User } from '@supabase/supabase-js';
-import { getSecureItem, setSecureItem } from '../utils/crypto';
 
 // Tipo customizado para o perfil do profissional (SaaS/Multi-profissional)
 export interface ProfessionalProfile {
@@ -14,14 +13,9 @@ export interface ProfessionalProfile {
   phone?: string;
 }
 
-interface DemoUserRecord extends ProfessionalProfile {
-  password?: string;
-}
-
 interface AuthContextType {
   user: ProfessionalProfile | null;
   loading: boolean;
-  isDemoMode: boolean;
   supabaseError: string | null;
   login: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, name: string, specialty: string) => Promise<{ error: string | null }>;
@@ -32,14 +26,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isDemoMode, setIsDemoMode] = useState(!isSupabaseConfigured);
-  const [user, setUser] = useState<ProfessionalProfile | null>(() => {
-    if (!isSupabaseConfigured) {
-      return getSecureItem<ProfessionalProfile | null>('agenda_clinical_demo_user', null);
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [user, setUser] = useState<ProfessionalProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
 
   // Função para buscar dados da tabela profiles
@@ -78,18 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Se estiver no modo demo, não há inicialização de Supabase a fazer
-    if (isDemoMode) {
-      setLoading(false);
-      return;
-    }
-
-    if (!isSupabaseConfigured) {
-      setIsDemoMode(true);
-      setLoading(false);
-      return;
-    }
-
     let isMounted = true;
 
     // Modo Supabase Real com Timeout de Segurança de 4 segundos
@@ -111,10 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
         }
       } catch (err) {
-        console.error('Erro ao buscar sessão inicial do Supabase, mudando para modo Demo:', err);
+        console.error('Erro ao buscar sessão inicial do Supabase:', err);
         if (isMounted) {
           setSupabaseError(err instanceof Error ? err.message : String(err));
-          setIsDemoMode(true);
         }
       } finally {
         if (isMounted) {
@@ -148,43 +123,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [isDemoMode]);
+  }, []);
 
   // Função de Login
   const login = async (email: string, password: string): Promise<{ error: string | null }> => {
-    if (isDemoMode) {
-      // Login Simulado
-      if (email === 'demo@agenda.com' && password === '123456') {
-        const mockProfile: ProfessionalProfile = {
-          id: 'demo-professional-id',
-          email: 'demo@agenda.com',
-          name: 'Dra. Clarice (Psicóloga)',
-          specialty: 'Psicologia Clínica',
-        };
-        setSecureItem('agenda_clinical_demo_user', mockProfile);
-        setUser(mockProfile);
-        return { error: null };
-      }
-      // Permite criar logins fictícios em modo demo também para facilitar
-      const demoUsers = getSecureItem<DemoUserRecord[]>('agenda_clinical_demo_users_list', []);
-      const foundUser = demoUsers.find((u: DemoUserRecord) => u.email === email && u.password === password);
-      
-      if (foundUser) {
-        const mockProfile: ProfessionalProfile = {
-          id: foundUser.id,
-          email: foundUser.email,
-          name: foundUser.name,
-          specialty: foundUser.specialty,
-        };
-        setSecureItem('agenda_clinical_demo_user', mockProfile);
-        setUser(mockProfile);
-        return { error: null };
-      }
-
-      return { error: 'E-mail ou senha incorretos (No modo demo, use demo@agenda.com / 123456 ou cadastre uma conta).' };
-    }
-
-    // Login Supabase Real
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) return { error: error.message };
@@ -205,32 +147,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     name: string,
     specialty: string
   ): Promise<{ error: string | null }> => {
-    if (isDemoMode) {
-      // Cadastro Simulado
-      const newId = `demo-id-${Date.now()}`;
-      const newProfile: ProfessionalProfile = {
-        id: newId,
-        email,
-        name,
-        specialty,
-      };
-
-      // Salva na lista global de usuários demo do navegador
-      const demoUsers = getSecureItem<DemoUserRecord[]>('agenda_clinical_demo_users_list', []);
-      if (demoUsers.some((u: DemoUserRecord) => u.email === email)) {
-        return { error: 'Este e-mail já está cadastrado no modo demo.' };
-      }
-      
-      demoUsers.push({ id: newId, email, password, name, specialty });
-      setSecureItem('agenda_clinical_demo_users_list', demoUsers);
-      
-      // Define como usuário ativo
-      setSecureItem('agenda_clinical_demo_user', newProfile);
-      setUser(newProfile);
-      return { error: null };
-    }
-
-    // Cadastro Supabase Real
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -245,8 +161,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) return { error: error.message };
       
-      // Nota: Com Supabase Auth, se o e-mail precisar de confirmação, o usuário pode não ser logado imediatamente.
-      // Mas exibiremos um aviso ou faremos login automático se o Supabase estiver configurado para autologin.
       if (data.user) {
         // Insere perfil manualmente na tabela profiles caso a trigger falhe ou demore
         try {
@@ -284,29 +198,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       phone: phone || undefined,
     };
 
-    if (isDemoMode) {
-      // Atualiza usuário ativo
-      setSecureItem('agenda_clinical_demo_user', updatedProfile);
-      
-      // Atualiza lista global de usuários demo
-      const demoUsers = getSecureItem<DemoUserRecord[]>('agenda_clinical_demo_users_list', []);
-      const idx = demoUsers.findIndex((u) => u.id === user.id);
-      if (idx !== -1) {
-        demoUsers[idx] = {
-          ...demoUsers[idx],
-          name,
-          specialty,
-          register_number: registerNumber || undefined,
-          phone: phone || undefined,
-        };
-        setSecureItem('agenda_clinical_demo_users_list', demoUsers);
-      }
-      
-      setUser(updatedProfile);
-      return { error: null };
-    }
-
-    // Modo Supabase Real
     try {
       const { error } = await supabase
         .from('profiles')
@@ -346,22 +237,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Função de Logout
   const logout = async () => {
-    if (isDemoMode) {
-      localStorage.removeItem('agenda_clinical_demo_user');
-      setUser(null);
-      return;
-    }
-
     try {
       await supabase.auth.signOut();
       setUser(null);
     } catch (err) {
-      console.error('Erro ao sair:', err);
+      console.error('Erro ao fazer logout:', err);
     }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isDemoMode, supabaseError, login, signUp, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, supabaseError, login, signUp, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

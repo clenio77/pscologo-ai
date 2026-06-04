@@ -12,7 +12,7 @@ import {
   Heart, 
   Menu, 
   X,
-  Sparkles
+  User
 } from 'lucide-react';
 import { Portal } from './Portal';
 import './Layout.css';
@@ -22,7 +22,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user, logout, isDemoMode, updateProfile } = useAuth();
+  const { user, logout, updateProfile } = useAuth();
   const { addToast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
@@ -146,13 +146,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </span>
           </div>
           <div className="topbar-right">
-            {isDemoMode && (
-              <div className="demo-badge">
-                <Sparkles size={14} />
-                <span>Modo de Demonstração</span>
+            {/* Desktop User Info */}
+            <div className="layout-user">
+              <div className="user-avatar">
+                <User size={20} />
               </div>
-            )}
-            <div className="user-profile-badge">
               <span className="welcome-text">Olá, {user?.name.split(' ')[0]}</span>
               <div className="avatar-circle">
                 {user?.name.charAt(0).toUpperCase()}
