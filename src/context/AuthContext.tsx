@@ -97,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Supabase connection timeout')), 4000)
+          setTimeout(() => reject(new Error('Supabase connection timeout')), 10000)
         );
 
         // Faz corrida para evitar travamento indefinido caso a rede falhe silenciosamente
