@@ -35,6 +35,9 @@ interface PatientDetailProps {
 import { AnalysisModal } from './AnalysisModal';
 import { PatientProfileModal } from './PatientProfileModal';
 import { SentimentModal } from './SentimentModal';
+import { MetricsModal } from './MetricsModal';
+import { ProgressRadarModal } from './ProgressRadarModal';
+import { ReportExportModal } from './ReportExportModal';
 import type { AnalysisType } from '../../services/aiService';
 import type { PatientAnalysis } from '../../services/api';
 
@@ -55,6 +58,10 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
   const [patientAnalysis, setPatientAnalysis] = useState<PatientAnalysis | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [sentimentModalOpen, setSentimentModalOpen] = useState(false);
+  
+  const [metricsModalOpen, setMetricsModalOpen] = useState(false);
+  const [progressRadarModalOpen, setProgressRadarModalOpen] = useState(false);
+  const [reportExportModalOpen, setReportExportModalOpen] = useState(false);
 
   React.useEffect(() => {
     const loadAnalysis = async () => {
@@ -294,7 +301,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
         <div className="module-section">
           <h4 className="module-title">Módulo 4 — Métricas e Relatórios</h4>
           <div className="module-grid">
-            <div className="module-card">
+            <div className="module-card" onClick={() => setMetricsModalOpen(true)} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <BarChart2 className="module-icon" size={24} />
               </div>
@@ -303,7 +310,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <span className="badge-module badge-core">Core</span>
             </div>
 
-            <div className="module-card">
+            <div className="module-card" onClick={() => setProgressRadarModalOpen(true)} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <Target className="module-icon" size={24} />
               </div>
@@ -312,7 +319,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <span className="badge-module badge-novo">Novo</span>
             </div>
 
-            <div className="module-card">
+            <div className="module-card" onClick={() => setReportExportModalOpen(true)} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <Download className="module-icon" size={24} />
               </div>
@@ -336,6 +343,28 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
         onClose={() => setSentimentModalOpen(false)}
         patient={patient}
         evolutions={evolutions}
+      />
+
+      <MetricsModal
+        isOpen={metricsModalOpen}
+        onClose={() => setMetricsModalOpen(false)}
+        patient={patient}
+        evolutions={evolutions}
+      />
+
+      <ProgressRadarModal
+        isOpen={progressRadarModalOpen}
+        onClose={() => setProgressRadarModalOpen(false)}
+        patient={patient}
+        evolutions={evolutions}
+      />
+
+      <ReportExportModal
+        isOpen={reportExportModalOpen}
+        onClose={() => setReportExportModalOpen(false)}
+        patient={patient}
+        evolutions={evolutions}
+        patientAnalysis={patientAnalysis}
       />
 
       <AnalysisModal

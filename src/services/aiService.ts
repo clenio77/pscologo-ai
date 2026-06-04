@@ -109,7 +109,7 @@ export const generateAnalysis = async (
       model: 'gemini-2.5-flash',
       contents: prompt,
       config: {
-        temperature: 0.3, // Menos alucinação, respostas mais precisas/teóricas
+        temperature: 0.3,
       }
     });
 
@@ -121,6 +121,90 @@ export const generateAnalysis = async (
   } catch (error) {
     console.error('Erro ao gerar análise com IA:', error);
     throw new Error('Falha ao comunicar com o Google Gemini. Verifique sua chave de API e a conexão de rede.');
+  }
+};
+
+// ==========================================
+// MÓDULO 4 — RADAR DE PROGRESSO
+// ==========================================
+
+export interface ProgressDimension {
+  dimension: string;
+  initialScore: number;
+  currentScore: number;
+  explanation: string;
+}
+
+export const generateProgressRadar = async (
+  patient: Patient,
+  evolutions: Evolution[]
+): Promise<ProgressDimension[]> => {
+  if (!ai) {
+    throw new Error('Chave da API do Gemini não configurada.');
+  }
+
+  if (evolutions.length < 2) {
+    throw new Error('São necessárias pelo menos 2 sessões para avaliar o progresso.');
+  }
+
+  // Sort evolutions chronologically
+  const sorted = [...evolutions].sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
+  
+  const firstSessions = sorted.slice(0, 2).map(e => `Data: ${e.session_date}\nConteúdo: ${e.content}`).join('\n\n');
+  const recentSessions = sorted.slice(-2).map(e => `Data: ${e.session_date}\nConteúdo: ${e.content}`).join('\n\n');
+
+  const prompt = `
+Você é um assistente de inteligência artificial atuando como psicólogo clínico.
+O objetivo é avaliar o progresso terapêutico do paciente (${patient.name}) comparando as primeiras sessões com as sessões mais recentes.
+
+PRIMEIRAS SESSÕES:
+${firstSessions}
+
+SESSÕES MAIS RECENTES:
+${recentSessions}
+
+Avalie o paciente nas seguintes 6 dimensões psicológicas:
+1. Autoconhecimento
+2. Regulação Emocional
+3. Resiliência
+4. Relações Interpessoais
+5. Autoestima
+6. Engajamento Terapêutico
+
+Para cada dimensão, atribua uma nota de 0 a 10 para o estado inicial (primeiras sessões) e para o estado atual (sessões mais recentes).
+Adicione uma breve explicação (1-2 frases) justificando as notas.
+
+Responda EXCLUSIVAMENTE em formato JSON (array de objetos).
+Formato esperado:
+[
+  {
+    "dimension": "Nome da Dimensão",
+    "initialScore": 4,
+    "currentScore": 7,
+    "explanation": "Breve justificativa..."
+  }
+]
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        temperature: 0.2,
+        responseMimeType: 'application/json',
+      }
+    });
+
+    if (!response.text) {
+      throw new Error('Resposta vazia da IA.');
+    }
+
+    const parsed = JSON.parse(response.text) as ProgressDimension[];
+    return parsed;
+  } catch (error) {
+    console.error('Erro ao gerar radar de progresso:', error);
+    throw new Error('Falha ao gerar radar de progresso.');
   }
 };
 
