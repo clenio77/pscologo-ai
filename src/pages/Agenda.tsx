@@ -19,6 +19,7 @@ import {
   Trash2
 } from 'lucide-react';
 import './Agenda.css';
+import { Portal } from '../components/Portal';
 
 export const Agenda: React.FC = () => {
   const { user } = useAuth();
@@ -371,198 +372,202 @@ export const Agenda: React.FC = () => {
 
       {/* MODAL: MARCAR CONSULTA */}
       {isAppointmentModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-slide-up">
-            <div className="modal-header">
-              <h3>Marcar Consulta / Sessão</h3>
-              <button className="close-modal-btn" onClick={() => setIsAppointmentModalOpen(false)}>
-                <X size={20} />
-              </button>
+        <Portal>
+          <div className="modal-overlay">
+            <div className="modal-content animate-slide-up">
+              <div className="modal-header">
+                <h3>Marcar Consulta / Sessão</h3>
+                <button className="close-modal-btn" onClick={() => setIsAppointmentModalOpen(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={handleCreateAppointment}>
+                <div className="modal-body">
+                  {patients.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
+                        É necessário ter pelo menos um paciente cadastrado para realizar agendamentos.
+                      </p>
+                      <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                        Cadastre o paciente primeiro na aba de Pacientes!
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">Selecione o Paciente</label>
+                        <select 
+                          className="form-control"
+                          value={selectedPatientId}
+                          onChange={(e) => setSelectedPatientId(e.target.value)}
+                          required
+                        >
+                          <option value="">Selecione...</option>
+                          {patients.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="grid grid-2 gap-4">
+                        <div className="form-group">
+                          <label className="form-label">Data da Consulta</label>
+                          <input 
+                            type="date" 
+                            className="form-control" 
+                            value={appDate}
+                            onChange={(e) => setAppDate(e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Horário de Início</label>
+                          <input 
+                            type="time" 
+                            className="form-control" 
+                            value={appTime}
+                            onChange={(e) => setAppTime(e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Duração Estimada (minutos)</label>
+                        <select 
+                          className="form-control"
+                          value={appDuration}
+                          onChange={(e) => setAppDuration(Number(e.target.value))}
+                        >
+                          <option value={30}>30 minutos</option>
+                          <option value={45}>45 minutos</option>
+                          <option value={50}>50 minutos (Padrão)</option>
+                          <option value={60}>60 minutos / 1 hora</option>
+                          <option value={90}>90 minutos</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Queixas Clínicas / Notas do Agendamento</label>
+                        <textarea 
+                          className="form-control" 
+                          rows={3} 
+                          placeholder="Ex: Primeira consulta, alinhar metas..."
+                          value={appNotes}
+                          onChange={(e) => setAppNotes(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsAppointmentModalOpen(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={patients.length === 0}>
+                    Salvar Consulta
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleCreateAppointment}>
-              <div className="modal-body">
-                {patients.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px' }}>
-                    <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
-                      É necessário ter pelo menos um paciente cadastrado para realizar agendamentos.
-                    </p>
-                    <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                      Cadastre o paciente primeiro na aba de Pacientes!
-                    </span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="form-group">
-                      <label className="form-label">Selecione o Paciente</label>
-                      <select 
-                        className="form-control"
-                        value={selectedPatientId}
-                        onChange={(e) => setSelectedPatientId(e.target.value)}
-                        required
-                      >
-                        {patients.map(p => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-2 gap-4">
-                      <div className="form-group">
-                        <label className="form-label">Data</label>
-                        <input 
-                          type="date" 
-                          className="form-control"
-                          value={appDate}
-                          onChange={(e) => setAppDate(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Horário de Início</label>
-                        <input 
-                          type="time" 
-                          className="form-control"
-                          value={appTime}
-                          onChange={(e) => setAppTime(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Duração (Minutos)</label>
-                      <input 
-                        type="number" 
-                        className="form-control"
-                        value={appDuration}
-                        onChange={(e) => setAppDuration(Number(e.target.value))}
-                        min={10}
-                        max={180}
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label">Observações / Notas da Consulta</label>
-                      <textarea 
-                        className="form-control"
-                        rows={3}
-                        placeholder="Ex: Primeira consulta, alinhar metas..."
-                        value={appNotes}
-                        onChange={(e) => setAppNotes(e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsAppointmentModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={patients.length === 0}>
-                  Salvar Consulta
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* MODAL: DETALHES E AÇÕES DA CONSULTA */}
       {isDetailModalOpen && selectedAppointment && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-slide-up" style={{ maxWidth: '450px' }}>
-            <div className="modal-header">
-              <h3>Detalhes da Consulta</h3>
-              <button className="close-modal-btn" onClick={() => setIsDetailModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-profile-block">
-                <div className="avatar-circle">
-                  {selectedAppointment.patient?.name.charAt(0).toUpperCase()}
-                </div>
-                <h4>{selectedAppointment.patient?.name}</h4>
-                {getStatusBadge(selectedAppointment.status)}
+        <Portal>
+          <div className="modal-overlay">
+            <div className="modal-content animate-slide-up" style={{ maxWidth: '450px' }}>
+              <div className="modal-header">
+                <h3>Detalhes da Consulta</h3>
+                <button className="close-modal-btn" onClick={() => setIsDetailModalOpen(false)}>
+                  <X size={20} />
+                </button>
               </div>
-
-              <div className="detail-list" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)' }}>
-                  <Clock size={16} />
-                  <span style={{ fontSize: '0.9rem' }}>
-                    {new Date(selectedAppointment.date_time).toLocaleDateString('pt-BR')} às {new Date(selectedAppointment.date_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({selectedAppointment.duration_minutes} min)
-                  </span>
+              <div className="modal-body">
+                <div className="detail-profile-block">
+                  <div className="avatar-circle">
+                    {selectedAppointment.patient?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <h4>{selectedAppointment.patient?.name}</h4>
+                  {getStatusBadge(selectedAppointment.status)}
                 </div>
-                {selectedAppointment.patient?.phone && (
+
+                <div className="detail-list" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)' }}>
-                    <Phone size={16} />
-                    <span style={{ fontSize: '0.9rem' }}>{selectedAppointment.patient.phone}</span>
+                    <Clock size={16} />
+                    <span style={{ fontSize: '0.9rem' }}>
+                      {new Date(selectedAppointment.date_time).toLocaleDateString('pt-BR')} às {new Date(selectedAppointment.date_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({selectedAppointment.duration_minutes} min)
+                    </span>
                   </div>
-                )}
-                {selectedAppointment.notes && (
-                  <div style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary-light)' }}>
-                    <strong>Observações:</strong>
-                    <p style={{ marginTop: '4px' }}>{selectedAppointment.notes}</p>
-                  </div>
-                )}
-              </div>
-
-              <hr style={{ margin: '20px 0', borderColor: 'var(--border-color)' }} />
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <span className="form-label" style={{ fontSize: '0.75rem' }}>Alterar Status do Atendimento</span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <button 
-                    onClick={() => handleUpdateStatus(selectedAppointment.id, 'completed')}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: 'var(--success)' }}
-                  >
-                    <CheckCircle size={14} /> Realizado
-                  </button>
-                  <button 
-                    onClick={() => handleUpdateStatus(selectedAppointment.id, 'no_show')}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: 'var(--warning)' }}
-                  >
-                    <AlertTriangle size={14} /> Falta / No-Show
-                  </button>
-                  <button 
-                    onClick={() => handleUpdateStatus(selectedAppointment.id, 'canceled')}
-                    className="btn btn-secondary btn-sm"
-                    style={{ color: 'var(--error)' }}
-                  >
-                    <XCircle size={14} /> Cancelar
-                  </button>
-                  <button 
-                    onClick={() => handleUpdateStatus(selectedAppointment.id, 'scheduled')}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    Agendado
-                  </button>
+                  {selectedAppointment.patient?.phone && (
+                    <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)' }}>
+                      <Phone size={16} />
+                      <span style={{ fontSize: '0.9rem' }}>{selectedAppointment.patient.phone}</span>
+                    </div>
+                  )}
+                  {selectedAppointment.notes && (
+                    <div style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary-light)' }}>
+                      <strong>Observações:</strong>
+                      <p style={{ marginTop: '4px' }}>{selectedAppointment.notes}</p>
+                    </div>
+                  )}
                 </div>
 
-                <hr style={{ margin: '10px 0', borderColor: 'var(--border-color)' }} />
+                <hr style={{ margin: '20px 0', borderColor: 'var(--border-color)' }} />
 
-                <button 
-                  onClick={() => handleSendWhatsAppReminder(selectedAppointment)}
-                  className="btn btn-primary"
-                  style={{ width: '100%', backgroundColor: '#25d366', borderColor: '#25d366', color: 'white', boxShadow: 'none' }}
-                >
-                  <MessageSquare size={16} /> Lembrete WhatsApp
-                </button>
-                
-                <button 
-                  onClick={() => handleDeleteAppointment(selectedAppointment.id)}
-                  className="btn btn-danger"
-                  style={{ width: '100%' }}
-                >
-                  <Trash2 size={16} /> Excluir Agendamento
-                </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <span className="form-label" style={{ fontSize: '0.75rem' }}>Alterar Status do Atendimento</span>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <button 
+                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'completed')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: 'var(--success)' }}
+                    >
+                      <CheckCircle size={14} /> Realizado
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'no_show')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: 'var(--warning)' }}
+                    >
+                      <AlertTriangle size={14} /> Falta / No-Show
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'canceled')}
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: 'var(--error)' }}
+                    >
+                      <XCircle size={14} /> Cancelar
+                    </button>
+                    <button 
+                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'scheduled')}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Agendado
+                    </button>
+                  </div>
+
+                  <hr style={{ margin: '10px 0', borderColor: 'var(--border-color)' }} />
+
+                  <button 
+                    onClick={() => handleSendWhatsAppReminder(selectedAppointment)}
+                    className="btn btn-primary"
+                    style={{ width: '100%', backgroundColor: '#25d366', borderColor: '#25d366', color: 'white', boxShadow: 'none' }}
+                  >
+                    <MessageSquare size={16} /> Lembrete WhatsApp
+                  </button>
+                  
+                  <button 
+                    onClick={() => handleDeleteAppointment(selectedAppointment.id)}
+                    className="btn btn-danger"
+                    style={{ width: '100%' }}
+                  >
+                    <Trash2 size={16} /> Excluir Agendamento
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       <style>{`

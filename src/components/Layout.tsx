@@ -14,6 +14,7 @@ import {
   X,
   Sparkles
 } from 'lucide-react';
+import { Portal } from './Portal';
 import './Layout.css';
 
 interface LayoutProps {
@@ -169,68 +170,70 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* MODAL: EDITAR PERFIL PROFISSIONAL */}
       {isProfileModalOpen && (
-        <div className="modal-overlay" style={{ zIndex: 1000 }}>
-          <div className="modal-content animate-slide-up" style={{ maxWidth: '450px' }}>
-            <div className="modal-header">
-              <h3>Editar Perfil Profissional</h3>
-              <button className="close-modal-btn" onClick={() => setIsProfileModalOpen(false)}>
-                <X size={20} />
-              </button>
+        <Portal>
+          <div className="modal-overlay">
+            <div className="modal-content animate-slide-up" style={{ maxWidth: '450px' }}>
+              <div className="modal-header">
+                <h3>Editar Perfil Profissional</h3>
+                <button className="close-modal-btn" onClick={() => setIsProfileModalOpen(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={handleUpdateProfile}>
+                <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label">Nome Completo</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={profName}
+                      onChange={(e) => setProfName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Especialidade / Profissão</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={profSpecialty}
+                      onChange={(e) => setProfSpecialty(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Registro Profissional (Ex: CRP 06/12345)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Opcional. Exibe no cabeçalho de prontuários"
+                      value={profRegister}
+                      onChange={(e) => setProfRegister(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Telefone / WhatsApp Comercial</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Opcional. Exibe no rodapé/contato"
+                      value={profPhone}
+                      onChange={(e) => setProfPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsProfileModalOpen(false)}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Salvar Perfil
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleUpdateProfile}>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="form-group">
-                  <label className="form-label">Nome Completo</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={profName}
-                    onChange={(e) => setProfName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Especialidade / Profissão</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={profSpecialty}
-                    onChange={(e) => setProfSpecialty(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Registro Profissional (Ex: CRP 06/12345)</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Opcional. Exibe no cabeçalho de prontuários"
-                    value={profRegister}
-                    onChange={(e) => setProfRegister(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Telefone / WhatsApp Comercial</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Opcional. Exibe no rodapé/contato"
-                    value={profPhone}
-                    onChange={(e) => setProfPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsProfileModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Salvar Perfil
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </Portal>
       )}
 
     </div>

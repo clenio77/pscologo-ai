@@ -1,0 +1,42 @@
+{
+  "name": "Agenda Clinical",
+  "short_name": "AgendaClin",
+  "description": "Plataforma clínica para psicólogos: agenda, prontuários, evoluções e formulários de anamnese.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#eaf2eb",
+  "theme_color": "#4a7c59",
+  "orientation": "any",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["health", "medical", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Agenda",
+      "short_name": "Agenda",
+      "description": "Abrir agenda de consultas",
+      "url": "/agenda",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Pacientes",
+      "short_name": "Pacientes",
+      "description": "Gerenciar prontuários",
+      "url": "/patients",
+      "icons": [{ "src": "/app-icon.svg", "sizes": "any" }]
+    }
+  ]
+}

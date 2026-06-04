@@ -14,6 +14,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import './Forms.css';
+import { Portal } from '../components/Portal';
 
 interface DynamicField {
   id: string;
@@ -366,8 +367,6 @@ export const Forms: React.FC = () => {
                   <span>{template.fields.length} perguntas</span>
                 </div>
               </div>
-              <p className="template-desc">{template.description || 'Sem descrição'}</p>
-              
               <div className="template-card-actions">
                 <button className="btn btn-secondary btn-sm" onClick={() => setViewingTemplate(template)}>
                   <Eye size={14} />
@@ -381,20 +380,20 @@ export const Forms: React.FC = () => {
 
       {/* MODAL: CRIADOR DE FORMULÁRIO */}
       {isCreatorModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-slide-up" style={{ maxWidth: '850px', width: '90%' }}>
-            <div className="modal-header">
-              <h3>Criador de Fichas e Formulários</h3>
-              <button className="close-modal-btn" onClick={() => setIsCreatorModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="creator-layout">
-              {/* Lado Esquerdo: Adicionar campos e Metadados */}
-              <div className="creator-left-panel">
-                <form onSubmit={(e) => e.preventDefault()} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="template-quick-loaders">
+        <Portal>
+          <div className="modal-overlay">
+            <div className="modal-content animate-slide-up" style={{ maxWidth: '850px', width: '90%', maxHeight: '90vh' }}>
+              <div className="modal-header">
+                <h3>Criador de Fichas e Formulários</h3>
+                <button className="close-modal-btn" onClick={() => setIsCreatorModalOpen(false)}>
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="creator-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', flex: 1, overflow: 'hidden' }}>
+                {/* Lado Esquerdo: Metadados e adicionar campos */}
+                <div className="creator-left-panel" style={{ padding: '24px', overflowY: 'auto', borderRight: '1px solid var(--border-color)' }}>
+                  <div className="template-quick-loaders" style={{ marginBottom: '16px' }}>
                     <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--primary)', fontWeight: 600 }}>
                       <Sparkles size={16} />
                       <span>Modelos Clínicos Clássicos</span>
@@ -402,7 +401,7 @@ export const Forms: React.FC = () => {
                     <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
                       Importe um roteiro clínico clássico para editar ou monte um modelo do zero.
                     </span>
-                    <div className="quick-loader-buttons">
+                    <div className="quick-loader-buttons" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <button type="button" className="btn-quick-loader" style={{ borderLeft: '4px solid var(--primary)' }} onClick={() => loadPredefinedTemplate('adulto')}>
                         <span>📝 Anamnese Geral Adulto (CFP)</span>
                       </button>
@@ -410,125 +409,117 @@ export const Forms: React.FC = () => {
                         <span>🧠 Formulação Cognitiva (TCC)</span>
                       </button>
                       <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('infantil')}>
-                        <span>👶 Infantil (Terceiros / Responsáveis)</span>
+                        <span>👶 Infantil / Desenvolvimento (CFP)</span>
                       </button>
                       <button type="button" className="btn-quick-loader" onClick={() => loadPredefinedTemplate('idoso')}>
-                        <span>👵 Idoso / Cuidador (Terceiros)</span>
+                        <span>🧓 Idoso / Cuidador (CFP)</span>
                       </button>
                     </div>
                   </div>
 
+                  <hr style={{ margin: '8px 0', borderColor: 'var(--border-color)' }} />
+
                   <div className="form-group">
-                    <label className="form-label">Título do Modelo</label>
+                    <label className="form-label">Título do Modelo de Ficha</label>
                     <input 
                       type="text" 
                       className="form-control" 
-                      placeholder="Ex: Anamnese Inicial Infantil"
+                      placeholder="Ex: Anamnese Geral Adulto, Ficha de Triagem..." 
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
-                      required
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Descrição / Instruções</label>
-                    <textarea 
+                    <label className="form-label">Descrição / Instruções do Modelo</label>
+                    <input 
+                      type="text" 
                       className="form-control" 
-                      rows={2} 
-                      placeholder="Instruções para o preenchimento..."
+                      placeholder="Instruções de preenchimento ou foco do formulário..." 
                       value={formDesc}
                       onChange={(e) => setFormDesc(e.target.value)}
                     />
                   </div>
 
-                  <hr style={{ borderColor: 'var(--border-color)' }} />
-                  
-                  <h4 style={{ fontSize: '0.9rem', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                    Adicionar Nova Pergunta
-                  </h4>
+                  <hr style={{ margin: '8px 0', borderColor: 'var(--border-color)' }} />
 
-                  <div className="form-group">
-                    <label className="form-label">Texto da Pergunta</label>
-                    <input 
-                      type="text" 
-                      className="form-control" 
-                      placeholder="Ex: Como descreve a qualidade do sono?"
-                      value={tempLabel}
-                      onChange={(e) => setTempLabel(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="grid grid-2 gap-4">
-                    <div className="form-group">
-                      <label className="form-label">Tipo de Campo</label>
-                      <select 
-                        className="form-control"
-                        value={tempType}
-                        onChange={(e) => setTempType(e.target.value as DynamicField['type'])}
-                      >
-                        <option value="text">Texto Curto</option>
-                        <option value="textarea">Texto Longo / Parágrafo</option>
-                        <option value="select">Seleção / Dropdown</option>
-                        <option value="checkbox">Caixa de Seleção (Sim/Não)</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group" style={{ justifyContent: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
-                        <input 
-                          type="checkbox" 
-                          style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                          checked={tempRequired}
-                          onChange={(e) => setTempRequired(e.target.checked)}
-                        />
-                        <span style={{ fontSize: '0.9rem', fontWeight: 500 }}>Obrigatório</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {tempType === 'select' && (
-                    <div className="form-group">
-                      <label className="form-label">Opções de Seleção (separadas por vírgula)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-main)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>Adicionar Pergunta Personalizada</span>
+                    
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Pergunta / Rótulo do Campo</label>
                       <input 
                         type="text" 
                         className="form-control" 
-                        placeholder="Ex: Excelente, Bom, Regular, Ruim"
-                        value={tempOptionsStr}
-                        onChange={(e) => setTempOptionsStr(e.target.value)}
+                        placeholder="Ex: Quais pensamentos negativos costumam passar pela sua mente?" 
+                        value={tempLabel}
+                        onChange={(e) => setTempLabel(e.target.value)}
                       />
                     </div>
-                  )}
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label" style={{ fontSize: '0.75rem' }}>Tipo de Resposta</label>
+                      <select 
+                        className="form-control" 
+                        value={tempType} 
+                        onChange={(e) => setTempType(e.target.value as any)}
+                      >
+                        <option value="text">Texto Curto</option>
+                        <option value="textarea">Texto Longo</option>
+                        <option value="select">Múltipla Escolha (Select)</option>
+                        <option value="checkbox">Confirmação (Checkbox)</option>
+                      </select>
+                    </div>
+                    {tempType === 'select' && (
+                      <div className="form-group" style={{ marginBottom: 0 }}>
+                        <label className="form-label" style={{ fontSize: '0.75rem' }}>Opções (separadas por vírgula)</label>
+                        <input 
+                          type="text" 
+                          className="form-control" 
+                          placeholder="Ex: Sim, Não, Às vezes" 
+                          value={tempOptionsStr}
+                          onChange={(e) => setTempOptionsStr(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <input 
+                        type="checkbox" 
+                        id="tempRequired"
+                        checked={tempRequired} 
+                        onChange={(e) => setTempRequired(e.target.checked)}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                      />
+                      <label htmlFor="tempRequired" style={{ fontSize: '0.85rem', cursor: 'pointer' }}>Pergunta Obrigatória</label>
+                    </div>
+                    <button type="button" className="btn btn-primary" onClick={handleAddField} style={{ width: '100%' }}>
+                      <PlusCircle size={16} />
+                      Adicionar Pergunta
+                    </button>
+                  </div>
+                </div>
 
-                  <button type="button" className="btn btn-secondary" onClick={handleAddField} style={{ marginTop: '8px' }}>
-                    <PlusCircle size={16} />
-                    <span>Inserir na Ficha</span>
-                  </button>
-                </form>
-              </div>
-
-              {/* Lado Direito: Preview da Ficha Montada */}
-              <div className="creator-right-panel">
-                <div className="preview-container card">
-                  <span className="preview-label">Visualização do Modelo</span>
-                  
-                  <div className="preview-header-block">
-                    <h3>{formTitle || 'Título da sua Ficha'}</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-                      {formDesc || 'Descrição do formulário...'}
-                    </p>
+                {/* Lado Direito: Preview das Perguntas */}
+                <div className="creator-right-panel" style={{ padding: '24px', overflowY: 'auto', background: 'var(--bg-main)' }}>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-main)' }}>Pré-visualização do Formulário</h4>
+                    {formTitle && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
+                        {formTitle}
+                      </p>
+                    )}
                   </div>
 
                   {fields.length === 0 ? (
-                    <div className="preview-empty-state">
+                    <div className="preview-empty-state" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', color: 'var(--text-muted)', gap: '12px', textAlign: 'center' }}>
                       <HelpCircle size={32} style={{ color: 'var(--border-color-hover)' }} />
                       <p>Adicione perguntas usando o painel à esquerda para montar a estrutura do formulário.</p>
                     </div>
                   ) : (
-                    <div className="preview-fields-list">
+                    <div className="preview-fields-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       {fields.map((f, i) => (
-                        <div key={f.id} className="preview-field-item">
-                          <div className="preview-field-meta">
-                            <span>Questão {i + 1} ({f.type}) {f.required && '*'}</span>
-                            <button className="remove-field-btn" onClick={() => handleRemoveField(f.id)}>
+                        <div key={f.id} className="preview-field-item" style={{ background: 'white', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                          <div className="preview-field-meta" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Questão {i + 1} ({f.type}) {f.required && '*'}</span>
+                            <button className="remove-field-btn" onClick={() => handleRemoveField(f.id)} style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '4px' }}>
                               <Trash2 size={14} />
                             </button>
                           </div>
@@ -557,77 +548,79 @@ export const Forms: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
 
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setIsCreatorModalOpen(false)}>
-                Cancelar
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleSaveTemplate} disabled={fields.length === 0}>
-                Salvar Modelo de Formulário
-              </button>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsCreatorModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleSaveTemplate} disabled={fields.length === 0 || !formTitle.trim()}>
+                  Salvar Modelo de Formulário
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
 
       {/* MODAL: VISUALIZAR MODELO EXISTENTE */}
       {viewingTemplate && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-slide-up" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h3>Visualização de Modelo</h3>
-              <button className="close-modal-btn" onClick={() => setViewingTemplate(null)}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="preview-header-block" style={{ marginBottom: '24px' }}>
-                <h3 style={{ fontSize: '1.3rem' }}>{viewingTemplate.title}</h3>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '6px' }}>
-                  {viewingTemplate.description || 'Sem descrição cadastrada.'}
-                </p>
+        <Portal>
+          <div className="modal-overlay">
+            <div className="modal-content animate-slide-up" style={{ maxWidth: '600px' }}>
+              <div className="modal-header">
+                <h3>Visualização de Modelo</h3>
+                <button className="close-modal-btn" onClick={() => setViewingTemplate(null)}>
+                  <X size={20} />
+                </button>
               </div>
+              <div className="modal-body">
+                <div className="preview-header-block" style={{ marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '1.3rem' }}>{viewingTemplate.title}</h3>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '6px' }}>
+                    {viewingTemplate.description || 'Sem descrição cadastrada.'}
+                  </p>
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {viewingTemplate.fields.map((f, idx) => (
-                  <div key={f.id} className="form-group" style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                    <label className="form-label" style={{ color: 'var(--text-main)', fontSize: '0.9rem', marginBottom: '8px' }}>
-                      {idx + 1}. {f.label} {f.required && <span style={{ color: 'var(--error)' }}>*</span>}
-                    </label>
-                    
-                    {f.type === 'text' && (
-                      <input type="text" className="form-control" disabled placeholder="Espaço para resposta curta..." />
-                    )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {viewingTemplate.fields.map((f, idx) => (
+                    <div key={f.id} className="form-group" style={{ background: 'var(--bg-main)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                      <label className="form-label" style={{ color: 'var(--text-main)', fontSize: '0.9rem', marginBottom: '8px' }}>
+                        {idx + 1}. {f.label} {f.required && <span style={{ color: 'var(--error)' }}>*</span>}
+                      </label>
+                      
+                      {f.type === 'text' && (
+                        <input type="text" className="form-control" disabled placeholder="Espaço para resposta curta..." />
+                      )}
 
-                    {f.type === 'textarea' && (
-                      <textarea className="form-control" disabled rows={2} placeholder="Espaço para resposta longa..." />
-                    )}
+                      {f.type === 'textarea' && (
+                        <textarea className="form-control" disabled rows={2} placeholder="Espaço para resposta longa..." />
+                      )}
 
-                    {f.type === 'select' && (
-                      <select className="form-control" disabled>
-                        <option>Opções de resposta:</option>
-                        {f.options?.map(opt => <option key={opt}>{opt}</option>)}
-                      </select>
-                    )}
+                      {f.type === 'select' && (
+                        <select className="form-control" disabled>
+                          <option>Opções de resposta:</option>
+                          {f.options?.map(opt => <option key={opt}>{opt}</option>)}
+                        </select>
+                      )}
 
-                    {f.type === 'checkbox' && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <input type="checkbox" disabled />
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Confirmar / Assinalar</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      {f.type === 'checkbox' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input type="checkbox" disabled />
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Confirmar / Assinalar</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setViewingTemplate(null)}>
-                Fechar
-              </button>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setViewingTemplate(null)}>
+                  Fechar
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );

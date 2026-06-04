@@ -8,3 +8,17 @@ createRoot(document.getElementById('root')!).render(
     <App />
   </StrictMode>,
 )
+
+// Registro do Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .then((registration) => {
+        console.log('[PWA] Service Worker registrado com sucesso:', registration.scope);
+      })
+      .catch((error) => {
+        console.warn('[PWA] Falha ao registrar Service Worker:', error);
+      });
+  });
+}
