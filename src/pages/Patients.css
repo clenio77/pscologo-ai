@@ -674,3 +674,119 @@
     font-weight: 500;
   }
 }
+
+/* === NOVA ÁREA DO CLIENTE (DASHBOARD MODULAR) === */
+.dashboard-modules-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.module-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.module-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.module-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.module-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+.module-icon-badge {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background-color: var(--bg-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  margin-bottom: 4px;
+}
+
+.module-card.ia .module-icon-badge {
+  background-color: #f0ebff;
+  color: #7c3aed;
+}
+
+.module-card h5 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.module-card p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.badge-module {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+
+.badge-core {
+  background-color: #e6f4ea;
+  color: #137333;
+}
+
+.badge-ia {
+  background-color: #f0ebff;
+  color: #7c3aed;
+}
+
+.badge-novo {
+  background-color: #e6f4ea;
+  color: #137333;
+}
+
+/* Modificação no cabeçalho do detalhe do paciente */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.btn-voltar-dash {
+  margin-bottom: 16px;
+}

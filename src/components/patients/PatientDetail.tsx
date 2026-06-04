@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { 
   ArrowLeft, 
-  History, 
   Clipboard, 
   Printer, 
   Plus, 
   Calendar as CalendarIcon, 
   FileText, 
   FileSpreadsheet,
-  Heart
+  Heart,
+  User,
+  Brain,
+  MessageSquare,
+  Smile,
+  TrendingUp,
+  BarChart2,
+  Target,
+  Download
 } from 'lucide-react';
 import type { Patient, Evolution, PatientForm } from '../../services/api';
 import type { ProfessionalProfile } from '../../context/AuthContext';
@@ -28,238 +35,265 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
   patient,
   evolutions,
   appliedForms,
-  user,
+  // user - removed from destructuring to fix unused variable
   onBack,
   onOpenEvolutionModal,
   onOpenApplyFormModal,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'evolutions' | 'forms'>('evolutions');
+  // Para fins de mockup, se clicar em um card não implementado mostra um toast ou console log, mas vamos usar um estado para views se quisermos
+  const [activeView, setActiveView] = useState<'dashboard' | 'evolutions' | 'forms'>('dashboard');
 
-  return (
-    <div className="patient-detail-view animate-fade-in">
-      <button className="btn btn-secondary back-btn" onClick={onBack}>
-        <ArrowLeft size={18} />
-        <span>Voltar para Lista</span>
-      </button>
-
-      <div className="patient-detail-grid">
-        {/* Coluna Esquerda: Ficha Rápida do Paciente */}
-        <div className="patient-info-sidebar">
-          <div className="card sticky-card">
-            <div className="patient-profile-header">
-              <div className="large-avatar">
-                {patient.name.charAt(0).toUpperCase()}
-              </div>
-              <h3>{patient.name}</h3>
-              <span className="badge badge-info">{calculateAge(patient.birth_date)}</span>
-            </div>
-
-            <div className="patient-profile-details">
-              <div className="detail-item">
-                <span className="label">E-mail</span>
-                <span className="val">{patient.email || 'Não informado'}</span>
-              </div>
-              <div className="detail-item">
-                <span className="label">Telefone</span>
-                <span className="val">{patient.phone || 'Não informado'}</span>
-              </div>
-              <div className="detail-item">
-                <span className="label">Nascimento</span>
-                <span className="val">
-                  {patient.birth_date ? new Date(patient.birth_date).toLocaleDateString('pt-BR') : 'Não informada'}
-                </span>
-              </div>
-              <div className="detail-item">
-                <span className="label">Notas de Entrada / Queixa Inicial</span>
-                <p className="valNotes">{patient.notes || 'Sem observações adicionais.'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Coluna Direita: Abas de Prontuário e Formulários */}
-        <div className="patient-records-section">
-          <div className="records-tabs">
-            <button 
-              className={`tab-btn ${activeSubTab === 'evolutions' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('evolutions')}
-            >
-              <History size={18} />
-              <span>Evolução Clínica ({evolutions.length})</span>
-            </button>
-            <button 
-              className={`tab-btn ${activeSubTab === 'forms' ? 'active' : ''}`}
-              onClick={() => setActiveSubTab('forms')}
-            >
-              <Clipboard size={18} />
-              <span>Formulários Aplicados ({appliedForms.length})</span>
-            </button>
-          </div>
-
+  if (activeView === 'evolutions' || activeView === 'forms') {
+    return (
+      <div className="patient-detail-view animate-fade-in">
+        <button className="btn btn-secondary back-btn btn-voltar-dash" onClick={() => setActiveView('dashboard')}>
+          <ArrowLeft size={18} />
+          <span>Voltar para o Dashboard</span>
+        </button>
+        {activeView === 'evolutions' ? (
           <div className="tab-content card">
-            {activeSubTab === 'evolutions' ? (
-              /* ABA 1: LINHA DO TEMPO DAS EVOLUÇÕES */
-              <div className="evolutions-tab">
-                <div className="tab-header">
-                  <h3>Histórico de Evolução Clínico</h3>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button type="button" className="btn btn-secondary print-action-btn" onClick={() => window.print()} title="Imprimir prontuário completo do paciente">
-                      <Printer size={18} />
-                      <span>Imprimir Prontuário</span>
-                    </button>
-                    <button type="button" className="btn btn-primary" onClick={onOpenEvolutionModal}>
-                      <Plus size={18} />
-                      <span>Nova Sessão / Evolução</span>
-                    </button>
-                  </div>
-                </div>
-
-                {evolutions.length === 0 ? (
-                  <div className="empty-sub-state">
-                    <FileText size={40} className="sub-empty-icon" />
-                    <p>Nenhuma sessão registrada para este paciente ainda.</p>
-                    <button className="btn btn-secondary btn-sm" onClick={onOpenEvolutionModal}>
-                      Registrar Primeira Sessão
-                    </button>
-                  </div>
-                ) : (
-                  <div className="timeline">
-                    {evolutions.map((evo) => (
-                      <div key={evo.id} className="timeline-item">
-                        <div className="timeline-marker"></div>
-                        <div className="timeline-content card">
-                          <div className="timeline-meta">
-                            <CalendarIcon size={14} />
-                            <strong>
-                              {new Date(evo.session_date + 'T12:00:00').toLocaleDateString('pt-BR', {
-                                day: '2-digit', month: 'long', year: 'numeric'
-                              })}
-                            </strong>
-                          </div>
-                          <p className="timeline-text">{evo.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* ABA 2: FORMULÁRIOS APLICADOS */
-              <div className="forms-tab">
-                <div className="tab-header">
-                  <h3>Formulários e Fichas de Anamnese</h3>
-                  <button className="btn btn-primary" onClick={onOpenApplyFormModal}>
-                    <Clipboard size={18} />
-                    <span>Aplicar Formulário</span>
+            <div className="evolutions-tab">
+              <div className="tab-header">
+                <h3>Histórico de Evolução Clínico</h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button type="button" className="btn btn-secondary print-action-btn" onClick={() => window.print()} title="Imprimir prontuário completo do paciente">
+                    <Printer size={18} />
+                    <span>Imprimir Prontuário</span>
+                  </button>
+                  <button type="button" className="btn btn-primary" onClick={onOpenEvolutionModal}>
+                    <Plus size={18} />
+                    <span>Nova Sessão / Evolução</span>
                   </button>
                 </div>
+              </div>
 
-                {appliedForms.length === 0 ? (
-                  <div className="empty-sub-state">
-                    <FileSpreadsheet size={40} className="sub-empty-icon" />
-                    <p>Nenhum formulário aplicado a este paciente ainda.</p>
-                    <button className="btn btn-secondary btn-sm" onClick={onOpenApplyFormModal}>
-                      Aplicar Formulário de Teste
-                    </button>
-                  </div>
-                ) : (
-                  <div className="applied-forms-list">
-                    {appliedForms.map((form) => (
-                      <div key={form.id} className="applied-form-item card">
-                        <div className="applied-form-header">
-                          <div>
-                            <h4>{form.template?.title || 'Formulário Personalizado'}</h4>
-                            <span className="filled-date">
-                              Preenchido em: {new Date(form.filled_at).toLocaleDateString('pt-BR')} às {new Date(form.filled_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
-                            </span>
-                            {form.respondent_name && (
-                              <div className="respondent-badge" style={{ fontSize: '0.8rem', color: '#4a7c59', marginTop: '4px', fontWeight: 600 }}>
-                                Respondido por: {form.respondent_name} ({form.respondent_relationship || 'Familiar'})
-                              </div>
-                            )}
-                          </div>
+              {evolutions.length === 0 ? (
+                <div className="empty-sub-state">
+                  <FileText size={40} className="sub-empty-icon" />
+                  <p>Nenhuma sessão registrada para este paciente ainda.</p>
+                  <button className="btn btn-secondary btn-sm" onClick={onOpenEvolutionModal}>
+                    Registrar Primeira Sessão
+                  </button>
+                </div>
+              ) : (
+                <div className="timeline">
+                  {evolutions.map((evo) => (
+                    <div key={evo.id} className="timeline-item">
+                      <div className="timeline-marker"></div>
+                      <div className="timeline-content card">
+                        <div className="timeline-meta">
+                          <CalendarIcon size={14} />
+                          <strong>
+                            {new Date(evo.session_date + 'T12:00:00').toLocaleDateString('pt-BR', {
+                              day: '2-digit', month: 'long', year: 'numeric'
+                            })}
+                          </strong>
                         </div>
-                        <div className="applied-form-answers">
-                          {Object.entries(form.answers).map(([label, val]) => (
-                            <div key={label} className="answer-row">
-                              <span className="question-lbl">{label}:</span>
-                              <span className="answer-val">
-                                {typeof val === 'boolean' ? (val ? 'Sim' : 'Não') : String(val || '—')}
-                              </span>
-                            </div>
-                          ))}
+                        <p className="timeline-text">{evo.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="tab-content card">
+            <div className="forms-tab">
+              <div className="tab-header">
+                <h3>Formulários e Fichas de Anamnese</h3>
+                <button className="btn btn-primary" onClick={onOpenApplyFormModal}>
+                  <Clipboard size={18} />
+                  <span>Aplicar Formulário</span>
+                </button>
+              </div>
+
+              {appliedForms.length === 0 ? (
+                <div className="empty-sub-state">
+                  <FileSpreadsheet size={40} className="sub-empty-icon" />
+                  <p>Nenhum formulário aplicado a este paciente ainda.</p>
+                  <button className="btn btn-secondary btn-sm" onClick={onOpenApplyFormModal}>
+                    Aplicar Formulário de Teste
+                  </button>
+                </div>
+              ) : (
+                <div className="applied-forms-list">
+                  {appliedForms.map((form) => (
+                    <div key={form.id} className="applied-form-item card">
+                      <div className="applied-form-header">
+                        <div>
+                          <h4>{form.template?.title || 'Formulário Personalizado'}</h4>
+                          <span className="filled-date">
+                            Preenchido em: {new Date(form.filled_at).toLocaleDateString('pt-BR')} às {new Date(form.filled_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                      <div className="applied-form-answers">
+                        {Object.entries(form.answers).map(([label, val]) => (
+                          <div key={label} className="answer-row">
+                            <span className="question-lbl">{label}:</span>
+                            <span className="answer-val">
+                              {typeof val === 'boolean' ? (val ? 'Sim' : 'Não') : String(val || '—')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="patient-detail-view animate-fade-in" style={{ maxWidth: '1200px', margin: '0 auto' }}>
+      <div className="dashboard-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <button className="btn btn-secondary" style={{ padding: '8px' }} onClick={onBack}>
+            <ArrowLeft size={18} />
+          </button>
+          <div>
+            <h2 style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{patient.name}</h2>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+              Idade: {calculateAge(patient.birth_date)} • Paciente desde {new Date(patient.created_at).toLocaleDateString('pt-BR')}
+            </span>
           </div>
         </div>
+        <button className="btn btn-primary" onClick={onOpenEvolutionModal}>
+          <Plus size={18} />
+          <span>Nova Sessão</span>
+        </button>
       </div>
 
-      {/* CABEÇALHO E LAUDO DE IMPRESSÃO TIMBRADO (INVISÍVEL EM TELA, VISÍVEL EM IMPRESSÃO) */}
-      <div className="print-only-prontuario">
-        <div className="print-header">
-          <div className="print-brand">
-            <Heart size={32} style={{ color: '#4a7c59' }} />
-            <div className="print-brand-text">
-              <h2>Agenda Clinical</h2>
-              <span>Gestão Integrada de Consultórios</span>
-            </div>
-          </div>
-          <div className="print-professional-details">
-            <h3>{user?.name}</h3>
-            <p>{user?.specialty}</p>
-            {user?.register_number && <p className="print-register-badge">{user.register_number}</p>}
-            {user?.phone && <p>Contato: {user.phone}</p>}
-            {user?.email && <p>E-mail: {user.email}</p>}
-          </div>
-        </div>
-
-        <div className="print-divider"></div>
-
-        <div className="print-patient-card">
-          <h3>DADOS DO PACIENTE</h3>
-          <div className="print-patient-grid">
-            <div><strong>Paciente:</strong> {patient.name}</div>
-            <div><strong>Idade:</strong> {calculateAge(patient.birth_date)}</div>
-            {patient.email && <div><strong>E-mail:</strong> {patient.email}</div>}
-            {patient.phone && <div><strong>Telefone:</strong> {patient.phone}</div>}
-            {patient.birth_date && <div><strong>Data Nasc.:</strong> {new Date(patient.birth_date).toLocaleDateString('pt-BR')}</div>}
-          </div>
-          {patient.notes && (
-            <div className="print-patient-notes">
-              <strong>Queixa Inicial / Histórico:</strong>
-              <p>{patient.notes}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="print-divider"></div>
-
-        <div className="print-evolutions-list">
-          <h3>HISTÓRICO DE EVOLUÇÕES CLÍNICAS</h3>
-          {evolutions.length === 0 ? (
-            <p className="print-empty">Nenhum registro de evolução encontrado para este paciente.</p>
-          ) : (
-            evolutions.map((evo) => (
-              <div key={evo.id} className="print-evo-item">
-                <div className="print-evo-meta">
-                  <strong>Sessão em:</strong> {new Date(evo.session_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                </div>
-                <p className="print-evo-content">{evo.content}</p>
+      <div className="dashboard-modules-container">
+        {/* MÓDULO 1 */}
+        <div className="module-section">
+          <h4 className="module-title">Módulo 1 — Perfil e Avaliações</h4>
+          <div className="module-grid">
+            <div className="module-card">
+              <div className="module-icon-badge">
+                <User className="module-icon" size={24} />
               </div>
-            ))
-          )}
+              <h5>Ficha do paciente</h5>
+              <p>Dados pessoais, histórico clínico, queixas principais, medicamentos em uso e contatos de emergência.</p>
+              <span className="badge-module badge-core">Core</span>
+            </div>
+
+            <div className="module-card ia" onClick={() => setActiveView('forms')}>
+              <div className="module-icon-badge">
+                <Clipboard className="module-icon" size={24} />
+              </div>
+              <h5>Avaliação inicial</h5>
+              <p>Formulário estruturado de anamnese psicológica. Ao finalizar, gera o prontuário inteligente automaticamente.</p>
+              <span className="badge-module badge-ia">IA</span>
+            </div>
+          </div>
         </div>
 
-        <div className="print-footer">
-          <p>Documento oficial emitido em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.</p>
-          <p className="print-signature-line">Assinatura do Profissional: _________________________________________</p>
+        {/* MÓDULO 2 */}
+        <div className="module-section">
+          <h4 className="module-title">Módulo 2 — Prontuário Inteligente</h4>
+          <div className="module-grid">
+            <div className="module-card ia">
+              <div className="module-icon-badge">
+                <Brain className="module-icon" size={24} />
+              </div>
+              <h5>Análise freudiana</h5>
+              <p>Mecanismos de defesa identificados, conflitos inconscientes mapeados e hipóteses psicodinâmicas com base na avaliação.</p>
+              <span className="badge-module badge-ia">IA</span>
+            </div>
+
+            <div className="module-card ia">
+              <div className="module-icon-badge">
+                <MessageSquare className="module-icon" size={24} />
+              </div>
+              <h5>Análise TCC (Aaron Beck)</h5>
+              <p>Crenças centrais, pensamentos automáticos e distorções cognitivas identificadas. Sugestão de técnicas e intervenções.</p>
+              <span className="badge-module badge-ia">IA</span>
+            </div>
+
+            <div className="module-card ia">
+              <div className="module-icon-badge">
+                <Heart className="module-icon" size={24} />
+              </div>
+              <h5>Análise humanista (Rogers)</h5>
+              <p>Autoconceito, incongruências entre self real e ideal, e nível de autoaceitação. Base para abordagem centrada na pessoa.</p>
+              <span className="badge-module badge-ia">IA</span>
+            </div>
+
+            <div className="module-card ia">
+              <div className="module-icon-badge">
+                <FileText className="module-icon" size={24} />
+              </div>
+              <h5>Síntese clínica integrada</h5>
+              <p>Resumo unificado das três abordagens, hipótese diagnóstica e plano terapêutico sugerido. Editável pelo terapeuta.</p>
+              <span className="badge-module badge-ia">IA</span>
+            </div>
+          </div>
+        </div>
+
+        {/* MÓDULO 3 */}
+        <div className="module-section">
+          <h4 className="module-title">Módulo 3 — Análise de Sentimento e Evolução</h4>
+          <div className="module-grid">
+            <div className="module-card ia">
+              <div className="module-icon-badge">
+                <Smile className="module-icon" size={24} />
+              </div>
+              <h5>Mapa emocional da sessão</h5>
+              <p>Após cada sessão, o terapeuta registra notas e a IA identifica emoções predominantes, gerando um radar emocional visual.</p>
+              <span className="badge-module badge-ia">IA</span>
+            </div>
+
+            <div className="module-card" onClick={() => setActiveView('evolutions')}>
+              <div className="module-icon-badge">
+                <TrendingUp className="module-icon" size={24} />
+              </div>
+              <h5>Evolução do sentimento</h5>
+              <p>Gráfico de linha temporal mostrando a variação de ansiedade, depressão, autoestima e bem-estar ao longo das sessões.</p>
+              <span className="badge-module badge-core">Core</span>
+            </div>
+          </div>
+        </div>
+
+        {/* MÓDULO 4 */}
+        <div className="module-section">
+          <h4 className="module-title">Módulo 4 — Métricas e Relatórios</h4>
+          <div className="module-grid">
+            <div className="module-card">
+              <div className="module-icon-badge">
+                <BarChart2 className="module-icon" size={24} />
+              </div>
+              <h5>Painel de métricas</h5>
+              <p>Total de sessões, frequência, faltas, duração média e engajamento do paciente.</p>
+              <span className="badge-module badge-core">Core</span>
+            </div>
+
+            <div className="module-card">
+              <div className="module-icon-badge">
+                <Target className="module-icon" size={24} />
+              </div>
+              <h5>Radar de progresso</h5>
+              <p>Gráfico radar comparando estado inicial vs. atual em 6 dimensões psicológicas.</p>
+              <span className="badge-module badge-novo">Novo</span>
+            </div>
+
+            <div className="module-card">
+              <div className="module-icon-badge">
+                <Download className="module-icon" size={24} />
+              </div>
+              <h5>Relatório exportável</h5>
+              <p>Relatório em PDF com toda a evolução do paciente, para encaminhamentos ou arquivamento.</p>
+              <span className="badge-module badge-core">Core</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
