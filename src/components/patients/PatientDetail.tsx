@@ -17,6 +17,7 @@ import {
   Target,
   Download
 } from 'lucide-react';
+import { api } from '../../services/api';
 import type { Patient, Evolution, PatientForm } from '../../services/api';
 import type { ProfessionalProfile } from '../../context/AuthContext';
 import { calculateAge } from '../../utils/formatters';
@@ -31,17 +32,42 @@ interface PatientDetailProps {
   onOpenApplyFormModal: () => void;
 }
 
+import { AnalysisModal } from './AnalysisModal';
+import type { AnalysisType } from '../../services/aiService';
+import type { PatientAnalysis } from '../../services/api';
+
 export const PatientDetail: React.FC<PatientDetailProps> = ({
   patient,
   evolutions,
   appliedForms,
-  // user - removed from destructuring to fix unused variable
+  user,
   onBack,
   onOpenEvolutionModal,
   onOpenApplyFormModal,
 }) => {
   // Para fins de mockup, se clicar em um card não implementado mostra um toast ou console log, mas vamos usar um estado para views se quisermos
   const [activeView, setActiveView] = useState<'dashboard' | 'evolutions' | 'forms'>('dashboard');
+
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
+  const [activeAnalysisType, setActiveAnalysisType] = useState<AnalysisType>('freud');
+  const [patientAnalysis, setPatientAnalysis] = useState<PatientAnalysis | null>(null);
+
+  React.useEffect(() => {
+    const loadAnalysis = async () => {
+      try {
+        const data = await api.getPatientAnalysis(patient.id);
+        if (data) setPatientAnalysis(data);
+      } catch (e) {
+        console.error('Falha ao carregar analises:', e);
+      }
+    };
+    loadAnalysis();
+  }, [patient.id]);
+
+  const openAnalysis = (type: AnalysisType) => {
+    setActiveAnalysisType(type);
+    setAnalysisModalOpen(true);
+  };
 
   if (activeView === 'evolutions' || activeView === 'forms') {
     return (
@@ -198,7 +224,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
         <div className="module-section">
           <h4 className="module-title">Módulo 2 — Prontuário Inteligente</h4>
           <div className="module-grid">
-            <div className="module-card ia">
+            <div className="module-card ia" onClick={() => openAnalysis('freud')} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <Brain className="module-icon" size={24} />
               </div>
@@ -207,7 +233,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <span className="badge-module badge-ia">IA</span>
             </div>
 
-            <div className="module-card ia">
+            <div className="module-card ia" onClick={() => openAnalysis('tcc')} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <MessageSquare className="module-icon" size={24} />
               </div>
@@ -216,7 +242,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <span className="badge-module badge-ia">IA</span>
             </div>
 
-            <div className="module-card ia">
+            <div className="module-card ia" onClick={() => openAnalysis('rogers')} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <Heart className="module-icon" size={24} />
               </div>
@@ -225,7 +251,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <span className="badge-module badge-ia">IA</span>
             </div>
 
-            <div className="module-card ia">
+            <div className="module-card ia" onClick={() => openAnalysis('synthesis')} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <FileText className="module-icon" size={24} />
               </div>
@@ -293,6 +319,18 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
           </div>
         </div>
       </div>
+
+      <AnalysisModal
+        isOpen={analysisModalOpen}
+        onClose={() => setAnalysisModalOpen(false)}
+        type={activeAnalysisType}
+        patient={patient}
+        evolutions={evolutions}
+        forms={appliedForms}
+        professionalId={user?.id || ''}
+        currentAnalysis={patientAnalysis}
+        onAnalysisSaved={(updated) => setPatientAnalysis(updated)}
+      />
     </div>
   );
 };

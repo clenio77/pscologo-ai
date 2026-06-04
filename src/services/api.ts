@@ -62,6 +62,18 @@ export interface PatientForm {
   template?: { title: string };
 }
 
+export interface PatientAnalysis {
+  id: string;
+  patient_id: string;
+  professional_id: string;
+  freud_analysis?: string;
+  tcc_analysis?: string;
+  rogers_analysis?: string;
+  synthesis?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ----------------------------------------------------
 // API SERVIÇOS
 // ----------------------------------------------------
@@ -233,5 +245,34 @@ export const api = {
 
     if (error) throw new Error(error.message);
     return data as unknown as PatientForm;
+  },
+
+  // ANÁLISES COM IA (PRONTUÁRIO INTELIGENTE)
+  async getPatientAnalysis(patientId: string): Promise<PatientAnalysis | null> {
+    const { data, error } = await supabase
+      .from('patient_analyses')
+      .select('*')
+      .eq('patient_id', patientId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Erro ao buscar análises (pode ser que a tabela ainda não exista):', error);
+      return null;
+    }
+    return data;
+  },
+
+  async upsertPatientAnalysis(analysis: Partial<PatientAnalysis> & { patient_id: string, professional_id: string }): Promise<PatientAnalysis> {
+    const { data, error } = await supabase
+      .from('patient_analyses')
+      .upsert({
+        ...analysis,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'patient_id' })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
   }
 };
