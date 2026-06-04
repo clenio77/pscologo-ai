@@ -74,6 +74,33 @@ export interface PatientAnalysis {
   updated_at: string;
 }
 
+export interface PatientProfile {
+  id: string;
+  patient_id: string;
+  professional_id: string;
+  cpf?: string;
+  rg?: string;
+  marital_status?: string;
+  profession?: string;
+  education_level?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  emergency_contact_relationship?: string;
+  main_complaint?: string;
+  clinical_history?: string;
+  family_history?: string;
+  medications?: string;
+  allergies?: string;
+  previous_treatments?: string;
+  referral_source?: string;
+  health_insurance?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // ----------------------------------------------------
 // API SERVIÇOS
 // ----------------------------------------------------
@@ -267,6 +294,35 @@ export const api = {
       .from('patient_analyses')
       .upsert({
         ...analysis,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'patient_id' })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  // FICHA DO PACIENTE (PERFIL CLÍNICO EXPANDIDO)
+  async getPatientProfile(patientId: string): Promise<PatientProfile | null> {
+    const { data, error } = await supabase
+      .from('patient_profiles')
+      .select('*')
+      .eq('patient_id', patientId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Erro ao buscar perfil do paciente:', error);
+      return null;
+    }
+    return data;
+  },
+
+  async upsertPatientProfile(profile: Partial<PatientProfile> & { patient_id: string, professional_id: string }): Promise<PatientProfile> {
+    const { data, error } = await supabase
+      .from('patient_profiles')
+      .upsert({
+        ...profile,
         updated_at: new Date().toISOString()
       }, { onConflict: 'patient_id' })
       .select()

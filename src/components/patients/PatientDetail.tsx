@@ -33,6 +33,8 @@ interface PatientDetailProps {
 }
 
 import { AnalysisModal } from './AnalysisModal';
+import { PatientProfileModal } from './PatientProfileModal';
+import { SentimentModal } from './SentimentModal';
 import type { AnalysisType } from '../../services/aiService';
 import type { PatientAnalysis } from '../../services/api';
 
@@ -51,6 +53,8 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
   const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
   const [activeAnalysisType, setActiveAnalysisType] = useState<AnalysisType>('freud');
   const [patientAnalysis, setPatientAnalysis] = useState<PatientAnalysis | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [sentimentModalOpen, setSentimentModalOpen] = useState(false);
 
   React.useEffect(() => {
     const loadAnalysis = async () => {
@@ -200,7 +204,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
         <div className="module-section">
           <h4 className="module-title">Módulo 1 — Perfil e Avaliações</h4>
           <div className="module-grid">
-            <div className="module-card">
+            <div className="module-card" onClick={() => setProfileModalOpen(true)} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <User className="module-icon" size={24} />
               </div>
@@ -266,7 +270,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
         <div className="module-section">
           <h4 className="module-title">Módulo 3 — Análise de Sentimento e Evolução</h4>
           <div className="module-grid">
-            <div className="module-card ia">
+            <div className="module-card ia" onClick={() => setSentimentModalOpen(true)} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <Smile className="module-icon" size={24} />
               </div>
@@ -275,7 +279,7 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
               <span className="badge-module badge-ia">IA</span>
             </div>
 
-            <div className="module-card" onClick={() => setActiveView('evolutions')}>
+            <div className="module-card" onClick={() => setActiveView('evolutions')} style={{ cursor: 'pointer' }}>
               <div className="module-icon-badge">
                 <TrendingUp className="module-icon" size={24} />
               </div>
@@ -319,6 +323,20 @@ export const PatientDetail: React.FC<PatientDetailProps> = ({
           </div>
         </div>
       </div>
+
+      <PatientProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        patient={patient}
+        professionalId={user?.id || ''}
+      />
+
+      <SentimentModal
+        isOpen={sentimentModalOpen}
+        onClose={() => setSentimentModalOpen(false)}
+        patient={patient}
+        evolutions={evolutions}
+      />
 
       <AnalysisModal
         isOpen={analysisModalOpen}
