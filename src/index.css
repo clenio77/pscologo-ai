@@ -55,6 +55,46 @@
   --sidebar-width: 260px;
 }
 
+/* Modo Noturno (Foco Clínico) */
+html.dark {
+  --bg-main: #141b16;
+  --bg-card: #1d261f;
+  --bg-sidebar: #19211b;
+  --bg-hover: #263329;
+  
+  --text-main: #e8efe9;
+  --text-muted: #94a398;
+  --text-light: #ffffff;
+  
+  --border-color: #2b3a30;
+  --border-color-hover: #3a4d40;
+  
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .form-control {
+  background-color: #141b16;
+  color: #e8efe9;
+}
+
+html.dark .form-control::placeholder {
+  color: #5e6f64;
+}
+
+html.dark .modal-content, html.dark .modal-header {
+  background-color: #1d261f;
+}
+
+html.dark .modal-footer {
+  background-color: #19211b;
+}
+
+html.dark .patient-context-header, html.dark .modal-patient-context {
+  background-color: #32533b !important;
+}
+
 /* Reset Geral */
 *, *::before, *::after {
   box-sizing: border-box;

@@ -7,7 +7,9 @@ import {
   Plus, 
   Search, 
   BookOpen, 
-  X
+  X,
+  Mic,
+  MicOff
 } from 'lucide-react';
 import { PatientCard } from '../components/patients/PatientCard';
 import { PatientDetail } from '../components/patients/PatientDetail';
@@ -35,9 +37,69 @@ export const Patients: React.FC = () => {
   const [isEvolutionModalOpen, setIsEvolutionModalOpen] = useState(false);
   const [isApplyFormModalOpen, setIsApplyFormModalOpen] = useState(false);
 
-  // Formulário: Registrar Nova Evolução (Sessão)
-  const [evoContent, setEvoContent] = useState('');
+  // Estado: Cadastrar Evolução
   const [evoDate, setEvoDate] = useState(new Date().toISOString().split('T')[0]);
+  const [evoContent, setEvoContent] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+
+  // Configurar Web Speech API
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const rec = new SpeechRecognition();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = 'pt-BR';
+      
+      rec.onresult = (event: any) => {
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (finalTranscript) {
+          setEvoContent(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + finalTranscript.trim());
+        }
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      setRecognition(rec);
+    }
+  }, []);
+
+  const toggleListen = () => {
+    if (isListening) {
+      recognition?.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognition?.start();
+        setIsListening(true);
+        addToast('Gravação por voz iniciada.', 'info');
+      } catch (e) {
+        console.warn('Erro ao iniciar reconhecimento de voz:', e);
+      }
+    }
+  };
+
+  // Auto-save (Rascunho) da Evolução
+  useEffect(() => {
+    if (isEvolutionModalOpen && selectedPatient) {
+      const draft = localStorage.getItem(`evo_draft_${selectedPatient.id}`);
+      if (draft && !evoContent) setEvoContent(draft);
+    }
+  }, [isEvolutionModalOpen, selectedPatient]);
+
+  useEffect(() => {
+    if (isEvolutionModalOpen && selectedPatient && evoContent.trim() !== '') {
+      localStorage.setItem(`evo_draft_${selectedPatient.id}`, evoContent);
+    }
+  }, [evoContent, isEvolutionModalOpen, selectedPatient]);
 
   // Formulário: Aplicar Formulário
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
@@ -127,6 +189,7 @@ export const Patients: React.FC = () => {
       });
       setIsEvolutionModalOpen(false);
       setEvoContent('');
+      localStorage.removeItem(`evo_draft_${selectedPatient.id}`);
       addToast('Evolução registrada no prontuário!', 'success');
       
       // Recarrega evoluções
@@ -281,7 +344,21 @@ export const Patients: React.FC = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Relato Clínico da Evolução</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <label className="form-label" style={{ marginBottom: 0 }}>Relato Clínico da Evolução</label>
+                      {recognition && (
+                        <button 
+                          type="button" 
+                          onClick={toggleListen}
+                          className={`btn btn-sm ${isListening ? 'btn-danger' : 'btn-secondary'}`}
+                          style={{ padding: '6px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', borderRadius: '20px' }}
+                          title={isListening ? 'Parar gravação' : 'Ditar evolução usando o microfone'}
+                        >
+                          {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+                          {isListening ? 'Parar de Ditar' : 'Ditar por Voz'}
+                        </button>
+                      )}
+                    </div>
                     <textarea 
                       className="form-control" 
                       rows={8} 
@@ -290,8 +367,9 @@ export const Patients: React.FC = () => {
                       onChange={(e) => setEvoContent(e.target.value)}
                       required
                     />
-                    <div style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {evoContent.length} caracteres digitados.
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      <span>{evoContent.length > 0 ? '✔️ Rascunho salvo automaticamente' : ''}</span>
+                      <span>{evoContent.length} caracteres digitados.</span>
                     </div>
                   </div>
                 </div>

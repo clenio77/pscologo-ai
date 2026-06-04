@@ -12,7 +12,9 @@ import {
   Heart, 
   Menu, 
   X,
-  User
+  User,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { Portal } from './Portal';
 import './Layout.css';
@@ -26,6 +28,22 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { addToast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = React.useState(false);
+  
+  // Tema Escuro
+  const [isDarkMode, setIsDarkMode] = React.useState(() => {
+    return localStorage.getItem('theme') === 'dark' || 
+           (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  });
+
+  React.useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   // Estados de formulário do perfil
   const [profName, setProfName] = React.useState('');
@@ -146,6 +164,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </span>
           </div>
           <div className="topbar-right">
+            {/* Theme Toggle */}
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)} 
+              className="btn btn-secondary" 
+              style={{ padding: '8px', borderRadius: '50%', border: 'none', background: 'transparent' }}
+              title={isDarkMode ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            
             {/* Desktop User Info */}
             <div className="layout-user">
               <div className="user-avatar">
