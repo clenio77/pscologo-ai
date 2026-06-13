@@ -13,6 +13,7 @@ const Agenda = lazy(() => import('./pages/Agenda').then(module => ({ default: mo
 const Forms = lazy(() => import('./pages/Forms').then(module => ({ default: module.Forms })));
 const YsqForm = lazy(() => import('./pages/YsqForm').then(module => ({ default: module.YsqForm })));
 const CrisisCheckIn = lazy(() => import('./pages/CrisisCheckIn').then(module => ({ default: module.CrisisCheckIn })));
+const DynamicFormRespondent = lazy(() => import('./pages/DynamicFormRespondent').then(module => ({ default: module.DynamicFormRespondent })));
 
 const LoadingScreen = () => (
   <div className="loading-screen">
@@ -90,7 +91,7 @@ const LoadingScreen = () => (
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const path = window.location.pathname;
-  const isPublicRoute = path.startsWith('/responder-ysq') || path.startsWith('/crise');
+  const isPublicRoute = path.startsWith('/responder-ysq') || path.startsWith('/crise') || path.startsWith('/responder-formulario');
 
   if (loading) {
     return <LoadingScreen />;
@@ -102,6 +103,7 @@ const AppContent: React.FC = () => {
         <Routes>
           <Route path="/responder-ysq/:token" element={<YsqForm />} />
           <Route path="/crise/:token" element={<CrisisCheckIn />} />
+          <Route path="/responder-formulario/:token" element={<DynamicFormRespondent />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

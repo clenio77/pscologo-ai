@@ -147,22 +147,32 @@ export const Patients: React.FC = () => {
     answers: Record<string, unknown>;
     respondentName?: string;
     respondentRelationship?: string;
-  }) => {
-    if (!user || !selectedPatient) return;
+    status?: string;
+  }): Promise<string> => {
+    if (!user || !selectedPatient) return '';
     try {
-      await api.createPatientForm({
+      const res = await api.createPatientForm({
         professional_id: user.id,
         patient_id: selectedPatient.id,
         template_id: data.templateId,
         answers: data.answers,
         respondent_name: data.respondentName,
         respondent_relationship: data.respondentRelationship,
+        status: data.status || 'completed',
+        current_page: 1,
+        completed_at: data.status === 'pending' ? null : new Date().toISOString()
       });
-      addToast('Formulário aplicado com sucesso!', 'success');
+      addToast(
+        data.status === 'pending' 
+          ? 'Link de preenchimento externo gerado!' 
+          : 'Formulário aplicado com sucesso!', 
+        'success'
+      );
       
       // Recarrega formulários aplicados
       const updatedForms = await api.getPatientForms(selectedPatient.id);
       setAppliedForms(updatedForms);
+      return res.id;
     } catch (err) {
       console.error('Erro ao aplicar formulário:', err);
       addToast('Erro ao aplicar formulário.', 'error');
@@ -233,6 +243,12 @@ export const Patients: React.FC = () => {
           onBack={() => setSelectedPatient(null)}
           onOpenEvolutionModal={() => setIsEvolutionModalOpen(true)}
           onOpenApplyFormModal={handleOpenApplyFormModal}
+          onRefreshForms={async () => {
+            if (selectedPatient) {
+              const f = await api.getPatientForms(selectedPatient.id);
+              setAppliedForms(f);
+            }
+          }}
         />
       )}
 

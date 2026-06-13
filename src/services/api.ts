@@ -59,7 +59,23 @@ export interface PatientForm {
   respondent_relationship?: string;
   filled_at: string;
   created_at: string;
-  template?: { title: string };
+  template?: { 
+    title: string;
+    description?: string;
+    fields?: Array<{
+      id: string;
+      label: string;
+      type: 'text' | 'textarea' | 'select' | 'checkbox';
+      required: boolean;
+      options?: string[];
+    }>;
+  };
+  patient?: {
+    name: string;
+  };
+  status?: string;
+  current_page?: number;
+  completed_at?: string | null;
 }
 
 export interface PatientAnalysis {
@@ -263,13 +279,13 @@ export const api = {
       .from('patient_forms')
       .select('*, template:form_templates(title)')
       .eq('patient_id', patientId)
-      .order('filled_at', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) throw new Error(error.message);
     return (data as unknown as PatientForm[]) || [];
   },
 
-  async createPatientForm(patientForm: Omit<PatientForm, 'id' | 'created_at' | 'filled_at'>): Promise<PatientForm> {
+  async createPatientForm(patientForm: Omit<PatientForm, 'id' | 'created_at' | 'filled_at'> & { status?: string, current_page?: number, completed_at?: string | null }): Promise<PatientForm> {
 
     const { data, error } = await supabase
       .from('patient_forms')
@@ -279,13 +295,61 @@ export const api = {
         template_id: patientForm.template_id,
         answers: patientForm.answers,
         respondent_name: patientForm.respondent_name || null,
-        respondent_relationship: patientForm.respondent_relationship || null
+        respondent_relationship: patientForm.respondent_relationship || null,
+        status: patientForm.status || 'completed',
+        current_page: patientForm.current_page || 1,
+        completed_at: patientForm.completed_at || null
       })
       .select('*, template:form_templates(title)')
       .single();
 
     if (error) throw new Error(error.message);
     return data as unknown as PatientForm;
+  },
+
+  async getPatientFormById(id: string): Promise<PatientForm> {
+    const { data, error } = await supabase
+      .from('patient_forms')
+      .select('*, template:form_templates(title, description, fields), patient:patients(name)')
+      .eq('id', id)
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as unknown as PatientForm;
+  },
+
+  async updatePatientForm(
+    id: string, 
+    payload: { 
+      answers: Record<string, unknown>; 
+      status?: string; 
+      current_page?: number; 
+      completed_at?: string | null 
+    }
+  ): Promise<PatientForm> {
+    const { data, error } = await supabase
+      .from('patient_forms')
+      .update({
+        answers: payload.answers,
+        status: payload.status,
+        current_page: payload.current_page,
+        completed_at: payload.completed_at
+      })
+      .eq('id', id)
+      .select('*, template:form_templates(title)')
+      .single();
+
+    if (error) throw new Error(error.message);
+    return data as unknown as PatientForm;
+  },
+
+  async deletePatientForm(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('patient_forms')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw new Error(error.message);
   },
 
   // ANÁLISES COM IA (PRONTUÁRIO INTELIGENTE)

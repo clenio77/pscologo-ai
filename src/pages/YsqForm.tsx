@@ -28,8 +28,13 @@ export const YsqForm: React.FC = () => {
   const [completed, setCompleted] = useState(false);
   const [attemptedFinalize, setAttemptedFinalize] = useState(false);
 
+  // Estados para Navegação por Teclado
+  const [activeQuestionIndex, setActiveQuestionIndex] = useState<number>(0);
+
   const totalQuestions = ysqQuestions.length;
   const totalPages = Math.ceil(totalQuestions / QUESTIONS_PER_PAGE);
+  const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
+  const pageQuestions = ysqQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
 
   // Inicialização e busca dos dados
   useEffect(() => {
@@ -41,6 +46,22 @@ export const YsqForm: React.FC = () => {
       }
 
       try {
+        // 1. Tenta carregar dados salvos no localStorage (offline)
+        const localDataStr = localStorage.getItem(`ysq_offline_${token}`);
+        let localResponses: Record<number, number> | null = null;
+        let localPage = 1;
+        
+        if (localDataStr) {
+          try {
+            const parsed = JSON.parse(localDataStr);
+            localResponses = parsed.responses;
+            localPage = parsed.currentPage;
+          } catch (e) {
+            console.warn('Erro ao ler cache local do YSQ:', e);
+          }
+        }
+
+        // 2. Busca do Supabase
         const { data, error } = await supabase
           .from('ysq_submissions')
           .select('*, patients(name)')
@@ -52,8 +73,34 @@ export const YsqForm: React.FC = () => {
         } else if (data.status === 'completed') {
           setCompleted(true);
         } else {
-          setResponses(data.responses || {});
-          setCurrentPage(data.current_page || 1);
+          let dbResponses = data.responses || {};
+          let dbPage = data.current_page || 1;
+
+          // Se o progresso local estiver mais completo que o do banco (sinal de queda de rede anterior)
+          if (localResponses && Object.keys(localResponses).length > Object.keys(dbResponses).length) {
+            setResponses(localResponses);
+            setCurrentPage(localPage);
+            setActiveQuestionIndex((localPage - 1) * QUESTIONS_PER_PAGE);
+            setSaveStatus('error'); // sinaliza que precisa sincronizar
+
+            // Tenta sincronizar com o banco em background
+            supabase
+              .from('ysq_submissions')
+              .update({
+                responses: localResponses,
+                current_page: localPage,
+                status: 'in_progress',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', token)
+              .then(({ error: syncErr }) => {
+                if (!syncErr) setSaveStatus('saved');
+              });
+          } else {
+            setResponses(dbResponses);
+            setCurrentPage(dbPage);
+            setActiveQuestionIndex((dbPage - 1) * QUESTIONS_PER_PAGE);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -66,14 +113,88 @@ export const YsqForm: React.FC = () => {
     fetchSubmission();
   }, [token]);
 
-  // Rola para o topo de forma instantânea quando o paciente muda de página no questionário
+  // Sincroniza o índice da primeira pergunta ao mudar de página
   useEffect(() => {
+    setActiveQuestionIndex(startIndex);
     window.scrollTo(0, 0);
   }, [currentPage]);
 
-  // Função para salvar progresso temporário
+  // Escuta teclas para responder (1 a 6) e navegar (setas cima/baixo)
+  useEffect(() => {
+    if (loading || completed || errorMsg) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Evita disparos indesejados se o paciente estiver focando em algum input do navegador
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const key = e.key;
+
+      // Respostas: 1 a 6
+      if (key >= '1' && key <= '6') {
+        const val = parseInt(key);
+        handleSelectAnswer(activeQuestionIndex, val);
+
+        // Avança para a próxima se não for a última da página
+        const localIndex = activeQuestionIndex - startIndex;
+        if (localIndex < pageQuestions.length - 1) {
+          const nextIndex = activeQuestionIndex + 1;
+          setActiveQuestionIndex(nextIndex);
+
+          // Rola suavemente para a pergunta ativa
+          setTimeout(() => {
+            const nextEl = document.getElementById(`q-card-${nextIndex}`);
+            if (nextEl) {
+              nextEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+        }
+      }
+
+      // Navegação por Setas: Cima / Baixo
+      if (key === 'ArrowDown') {
+        e.preventDefault();
+        const localIndex = activeQuestionIndex - startIndex;
+        if (localIndex < pageQuestions.length - 1) {
+          const nextIndex = activeQuestionIndex + 1;
+          setActiveQuestionIndex(nextIndex);
+          const nextEl = document.getElementById(`q-card-${nextIndex}`);
+          if (nextEl) {
+            nextEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }
+
+      if (key === 'ArrowUp') {
+        e.preventDefault();
+        const localIndex = activeQuestionIndex - startIndex;
+        if (localIndex > 0) {
+          const prevIndex = activeQuestionIndex - 1;
+          setActiveQuestionIndex(prevIndex);
+          const prevEl = document.getElementById(`q-card-${prevIndex}`);
+          if (prevEl) {
+            prevEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeQuestionIndex, startIndex, pageQuestions, loading, completed, errorMsg]);
+
+  // Função para salvar progresso (Supabase + localStorage de segurança)
   const saveProgress = async (updatedResponses: Record<number, number>, page: number) => {
     if (!token) return;
+
+    // 1. Grava no cache local de forma imediata (síncrono e garantido)
+    localStorage.setItem(`ysq_offline_${token}`, JSON.stringify({
+      responses: updatedResponses,
+      currentPage: page,
+      timestamp: Date.now()
+    }));
+
     setSaveStatus('saving');
     try {
       const { error } = await supabase
@@ -89,13 +210,12 @@ export const YsqForm: React.FC = () => {
       if (error) throw error;
       setSaveStatus('saved');
     } catch (err) {
-      console.error('Erro ao salvar progresso:', err);
+      console.error('Erro ao salvar progresso no Supabase:', err);
       setSaveStatus('error');
     }
   };
 
   const handleSelectAnswer = (questionIndex: number, score: number) => {
-    // Atualização imediata do estado para resposta visual instantânea no clique
     const nextResponses = { ...responses, [questionIndex]: score };
     setResponses(nextResponses);
     saveProgress(nextResponses, currentPage);
@@ -117,7 +237,7 @@ export const YsqForm: React.FC = () => {
     }
   };
 
-  // Algoritmo de cálculo de escores e finalização
+  // Algoritmo de cálculo de escores e finalização do questionário
   const handleFinalize = async () => {
     const unanswered = [];
     for (let i = 0; i < totalQuestions; i++) {
@@ -132,7 +252,6 @@ export const YsqForm: React.FC = () => {
       const firstUnansweredIndex = unanswered[0] - 1;
       const targetPage = Math.floor(firstUnansweredIndex / QUESTIONS_PER_PAGE) + 1;
       setCurrentPage(targetPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
@@ -156,6 +275,7 @@ export const YsqForm: React.FC = () => {
         scoresPayload[`${esquema}_critical_count`] = criticalCount;
       });
 
+      // Salva os escores
       const { error: scoresError } = await supabase
         .from('ysq_scores')
         .insert({
@@ -165,6 +285,7 @@ export const YsqForm: React.FC = () => {
 
       if (scoresError) throw scoresError;
 
+      // Atualiza a submissão para completo
       const { error: subError } = await supabase
         .from('ysq_submissions')
         .update({
@@ -177,7 +298,7 @@ export const YsqForm: React.FC = () => {
 
       if (subError) throw subError;
 
-      // Dispara IA em background
+      // Dispara IA em background (Edge Function)
       try {
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini`, {
           method: 'POST',
@@ -193,6 +314,9 @@ export const YsqForm: React.FC = () => {
       } catch (e) {
         console.warn(e);
       }
+
+      // Limpa cache local offline após submissão bem sucedida
+      localStorage.removeItem(`ysq_offline_${token}`);
 
       setSaveStatus('saved');
       setCompleted(true);
@@ -250,14 +374,12 @@ export const YsqForm: React.FC = () => {
     );
   }
 
-  const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
-  const pageQuestions = ysqQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
   const progressPercent = Math.round((Object.keys(responses).length / totalQuestions) * 100);
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f1f5f2 0%, #f8faf9 100%)', paddingBottom: '48px', fontFamily: 'inherit' }}>
       
-      {/* 🥞 HEADER FLUTUANTE FIXO COM PROGRESSO (GLASSMORPHISM) */}
+      {/* HEADER FLUTUANTE FIXO COM PROGRESSO (GLASSMORPHISM) */}
       <header style={{
         position: 'sticky',
         top: 0,
@@ -280,15 +402,14 @@ export const YsqForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Salvamento Status e Porcentagem */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             
-            {/* Status do Salvamento */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#64748b' }}>
+            {/* Status do Salvamento / Offline */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem' }}>
               {saveStatus === 'saving' && (
                 <>
                   <Loader2 size={12} className="animate-spin" style={{ color: '#4a7c59' }} />
-                  <span>Salvando progresso...</span>
+                  <span style={{ color: '#64748b' }}>Salvando progresso...</span>
                 </>
               )}
               {saveStatus === 'saved' && (
@@ -299,13 +420,13 @@ export const YsqForm: React.FC = () => {
               )}
               {saveStatus === 'error' && (
                 <>
-                  <CloudLightning size={12} style={{ color: '#ef4444' }} />
-                  <span style={{ color: '#ef4444', fontWeight: 600 }}>Erro de conexão</span>
+                  <CloudLightning size={12} style={{ color: '#d97706' }} />
+                  <span style={{ color: '#d97706', fontWeight: 600 }}>Salvo localmente (sem rede)</span>
                 </>
               )}
             </div>
 
-            {/* Contador de Porcentagem */}
+            {/* Progresso de preenchimento */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '100px', height: '8px', background: '#cbd5e1', borderRadius: '999px', overflow: 'hidden' }}>
                 <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, #4a7c59 0%, #689f78 100%)', borderRadius: '999px', transition: 'width 0.3s ease-out' }}></div>
@@ -320,7 +441,7 @@ export const YsqForm: React.FC = () => {
         </div>
       </header>
 
-      {/* 📚 CORPO DO FORMULÁRIO */}
+      {/* CORPO DO FORMULÁRIO */}
       <main style={{ maxWidth: '750px', margin: '32px auto 0', padding: '0 16px' }}>
         
         {/* Intro Card */}
@@ -333,25 +454,33 @@ export const YsqForm: React.FC = () => {
             Tente não racionalizar e responda com base no seu sentimento íntimo.
             Utilize a escala de **1** (Inteiramente Falso) a **6** (Descreve Perfeitamente).
           </p>
+          <div style={{ marginTop: '12px', padding: '8px 12px', backgroundColor: '#f0fdf4', border: '1px solid #dcfce7', borderRadius: '8px', color: '#166534', fontSize: '0.74rem', fontWeight: 600 }}>
+            💡 <strong>Dica de teclado:</strong> Use as teclas <strong>1 a 6</strong> para responder a pergunta ativa (com contorno destacado) e avançar automaticamente. Use <strong>↑</strong> e <strong>↓</strong> para navegar entre elas.
+          </div>
         </div>
 
-        {/* Lista de Perguntas da Página */}
+        {/* Lista de Perguntas */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {pageQuestions.map((question, index) => {
             const questionIndex = startIndex + index;
             const currentAnswer = responses[questionIndex];
+            const isActive = activeQuestionIndex === questionIndex;
 
             return (
               <div 
                 key={questionIndex} 
+                id={`q-card-${questionIndex}`}
+                onClick={() => setActiveQuestionIndex(questionIndex)}
                 style={{ 
                   background: 'white', 
-                  border: '1px solid #e2e8f0', 
+                  border: '2px solid', 
+                  borderColor: isActive ? '#4a7c59' : '#e2e8f0',
                   borderRadius: '16px', 
                   padding: '24px', 
-                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.01)',
-                  transition: 'border-color 0.2s',
-                  textAlign: 'left'
+                  boxShadow: isActive ? '0 10px 15px -3px rgba(74, 124, 89, 0.08)' : '0 4px 8px rgba(0, 0, 0, 0.01)',
+                  transition: 'all 0.2s ease-in-out',
+                  textAlign: 'left',
+                  cursor: 'pointer'
                 }}
               >
                 {/* Texto da Pergunta */}
@@ -360,7 +489,7 @@ export const YsqForm: React.FC = () => {
                   <span>{question}</span>
                 </p>
 
-                {/* Opções de Resposta (1 a 6) Dispostas Horizontalmente */}
+                {/* Opções de Resposta (1 a 6) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxWidth: '480px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
                     {[1, 2, 3, 4, 5, 6].map((score) => {
@@ -369,7 +498,10 @@ export const YsqForm: React.FC = () => {
                         <button
                           key={score}
                           type="button"
-                          onClick={() => handleSelectAnswer(questionIndex, score)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectAnswer(questionIndex, score);
+                          }}
                           style={{
                             flex: 1,
                             height: '42px',
@@ -396,7 +528,7 @@ export const YsqForm: React.FC = () => {
                     })}
                   </div>
                   
-                  {/* Legenda Didática das 6 Opções com Realce de Seleção */}
+                  {/* Legenda Didática das 6 Opções */}
                   <div style={{
                     marginTop: '14px',
                     padding: '12px',
@@ -449,7 +581,7 @@ export const YsqForm: React.FC = () => {
           })}
         </div>
 
-        {/* BOTOES DE NAVEGAÇÃO DE PÁGINA */}
+        {/* BOTOES DE NAVEGAÇÃO */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '32px', paddingTop: '20px', borderTop: '1px solid #cbd5e1' }}>
           
           <button
