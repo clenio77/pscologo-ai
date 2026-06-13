@@ -6,6 +6,15 @@ import { Heart, CheckCircle2, ChevronLeft, ChevronRight, Loader2, CloudLightning
 
 const QUESTIONS_PER_PAGE = 15;
 
+const lickersDesc = [
+  { val: 1, text: 'Inteiramente falsa' },
+  { val: 2, text: 'Em grande parte falsa' },
+  { val: 3, text: 'Levemente mais verdadeira que falsa' },
+  { val: 4, text: 'Moderadamente verdadeira' },
+  { val: 5, text: 'Em grande parte verdadeira' },
+  { val: 6, text: 'Descreve perfeitamente' }
+];
+
 export const YsqForm: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -382,10 +391,51 @@ export const YsqForm: React.FC = () => {
                     })}
                   </div>
                   
-                  {/* Legenda de Orientação */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 4px', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 'bold' }}>
-                    <span>1 — Inteiramente Falso</span>
-                    <span>6 — Descreve Perfeitamente</span>
+                  {/* Legenda Didática das 6 Opções com Realce de Seleção */}
+                  <div style={{
+                    marginTop: '14px',
+                    padding: '12px',
+                    background: '#f8fafc',
+                    border: '1px solid #f1f5f9',
+                    borderRadius: '10px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                    gap: '8px 12px'
+                  }}>
+                    {lickersDesc.map((item) => {
+                      const isItemChosen = currentAnswer === item.val;
+                      return (
+                        <div 
+                          key={item.val} 
+                          style={{ 
+                            fontSize: '0.74rem', 
+                            color: isItemChosen ? '#1b4328' : '#64748b', 
+                            fontWeight: isItemChosen ? 'bold' : 'normal',
+                            transition: 'color 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px'
+                          }}
+                        >
+                          <span style={{ 
+                            width: '16px', 
+                            height: '16px', 
+                            borderRadius: '4px', 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            fontSize: '0.68rem',
+                            fontWeight: 'bold',
+                            background: isItemChosen ? '#4a7c59' : '#cbd5e1',
+                            color: isItemChosen ? 'white' : '#64748b',
+                            transition: 'all 0.2s'
+                          }}>
+                            {item.val}
+                          </span>
+                          <span>{item.text}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
