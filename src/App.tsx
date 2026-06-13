@@ -1,12 +1,12 @@
 import React, { Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import { Login } from './pages/Login';
 import { Layout } from './components/Layout';
 import { Heart } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
+const Login = lazy(() => import('./pages/Login').then(module => ({ default: module.Login })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(module => ({ default: module.Dashboard })));
 const Patients = lazy(() => import('./pages/Patients').then(module => ({ default: module.Patients })));
 const Agenda = lazy(() => import('./pages/Agenda').then(module => ({ default: module.Agenda })));
@@ -110,7 +110,11 @@ const AppContent: React.FC = () => {
 
   // Se o profissional não estiver logado, exibe tela de login/cadastro
   if (!user) {
-    return <Login />;
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <Login />
+      </Suspense>
+    );
   }
 
   return (

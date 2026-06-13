@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import type { Patient, Evolution, PatientForm, PatientTest } from './api';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 
@@ -6,8 +5,22 @@ import { supabase, isSupabaseConfigured } from './supabaseClient';
 // Em ambiente de produção, esta chamada é feita via Supabase Edge Function ('gemini') para máxima segurança.
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-// Inicializa o GenAI apenas se a chave estiver presente para uso como fallback em dev
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+// Cliente de IA carregado dinamicamente para evitar empacotamento estático de @google/genai
+let localAiInstance: any = null;
+
+const getLocalAiClient = async () => {
+  if (localAiInstance) return localAiInstance;
+  if (!apiKey) return null;
+  
+  try {
+    const { GoogleGenAI } = await import('@google/genai');
+    localAiInstance = new GoogleGenAI({ apiKey });
+    return localAiInstance;
+  } catch (error) {
+    console.error('Erro ao inicializar o cliente local do Gemini de forma dinâmica:', error);
+    return null;
+  }
+};
 
 // Tipos de Análise
 export type AnalysisType = 'freud' | 'tcc' | 'rogers' | 'synthesis';
@@ -131,14 +144,14 @@ const callGemini = async (
       throw new Error('A Edge Function retornou um payload sem o campo "text".');
     } catch (edgeError) {
       console.warn('Erro ao chamar Supabase Edge Function. Tentando fallback local com VITE_GEMINI_API_KEY...', edgeError);
-      if (ai) {
+      if (apiKey) {
         return await callGeminiLocal(prompt, options);
       }
       throw new Error('Falha na comunicação com a Edge Function do Supabase e nenhum fallback local configurado.');
     }
   }
 
-  if (ai) {
+  if (apiKey) {
     return await callGeminiLocal(prompt, options);
   }
 
@@ -149,6 +162,7 @@ const callGeminiLocal = async (
   prompt: string, 
   options: { model?: string; temperature?: number; responseMimeType?: string }
 ): Promise<string> => {
+  const ai = await getLocalAiClient();
   if (!ai) {
     throw new Error('Cliente local do Gemini não está inicializado.');
   }

@@ -34,6 +34,9 @@ export default defineConfig({
             type: 'image/svg+xml'
           }
         ]
+      },
+      workbox: {
+        globIgnores: ['**/vendor-genai-*.js']
       }
     })
   ],
