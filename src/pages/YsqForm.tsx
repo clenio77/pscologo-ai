@@ -36,6 +36,61 @@ export const YsqForm: React.FC = () => {
   const startIndex = (currentPage - 1) * QUESTIONS_PER_PAGE;
   const pageQuestions = ysqQuestions.slice(startIndex, startIndex + QUESTIONS_PER_PAGE);
 
+  // 1. Função para salvar progresso (Supabase + localStorage de segurança)
+  const saveProgress = async (updatedResponses: Record<number, number>, page: number) => {
+    if (!token) return;
+
+    // Grava no cache local de forma imediata (síncrono e garantido)
+    localStorage.setItem(`ysq_offline_${token}`, JSON.stringify({
+      responses: updatedResponses,
+      currentPage: page,
+      timestamp: Date.now()
+    }));
+
+    setSaveStatus('saving');
+    try {
+      const { error } = await supabase
+        .from('ysq_submissions')
+        .update({
+          responses: updatedResponses,
+          current_page: page,
+          status: 'in_progress',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', token);
+
+      if (error) throw error;
+      setSaveStatus('saved');
+    } catch (err) {
+      console.error('Erro ao salvar progresso no Supabase:', err);
+      setSaveStatus('error');
+    }
+  };
+
+  const handleSelectAnswer = (questionIndex: number, score: number) => {
+    const nextResponses = { ...responses, [questionIndex]: score };
+    setResponses(nextResponses);
+    saveProgress(nextResponses, currentPage);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      const nextPage = currentPage + 1;
+      setCurrentPage(nextPage);
+      setActiveQuestionIndex((nextPage - 1) * QUESTIONS_PER_PAGE);
+      saveProgress(responses, nextPage);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      const prevPage = currentPage - 1;
+      setCurrentPage(prevPage);
+      setActiveQuestionIndex((prevPage - 1) * QUESTIONS_PER_PAGE);
+      saveProgress(responses, prevPage);
+    }
+  };
+
   // Inicialização e busca dos dados
   useEffect(() => {
     const fetchSubmission = async () => {
@@ -73,8 +128,8 @@ export const YsqForm: React.FC = () => {
         } else if (data.status === 'completed') {
           setCompleted(true);
         } else {
-          let dbResponses = data.responses || {};
-          let dbPage = data.current_page || 1;
+          const dbResponses = data.responses || {};
+          const dbPage = data.current_page || 1;
 
           // Se o progresso local estiver mais completo que o do banco (sinal de queda de rede anterior)
           if (localResponses && Object.keys(localResponses).length > Object.keys(dbResponses).length) {
@@ -113,9 +168,8 @@ export const YsqForm: React.FC = () => {
     fetchSubmission();
   }, [token]);
 
-  // Sincroniza o índice da primeira pergunta ao mudar de página
+  // Sincroniza o scroll ao mudar de página
   useEffect(() => {
-    setActiveQuestionIndex(startIndex);
     window.scrollTo(0, 0);
   }, [currentPage]);
 
@@ -182,60 +236,7 @@ export const YsqForm: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeQuestionIndex, startIndex, pageQuestions, loading, completed, errorMsg]);
-
-  // Função para salvar progresso (Supabase + localStorage de segurança)
-  const saveProgress = async (updatedResponses: Record<number, number>, page: number) => {
-    if (!token) return;
-
-    // 1. Grava no cache local de forma imediata (síncrono e garantido)
-    localStorage.setItem(`ysq_offline_${token}`, JSON.stringify({
-      responses: updatedResponses,
-      currentPage: page,
-      timestamp: Date.now()
-    }));
-
-    setSaveStatus('saving');
-    try {
-      const { error } = await supabase
-        .from('ysq_submissions')
-        .update({
-          responses: updatedResponses,
-          current_page: page,
-          status: 'in_progress',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', token);
-
-      if (error) throw error;
-      setSaveStatus('saved');
-    } catch (err) {
-      console.error('Erro ao salvar progresso no Supabase:', err);
-      setSaveStatus('error');
-    }
-  };
-
-  const handleSelectAnswer = (questionIndex: number, score: number) => {
-    const nextResponses = { ...responses, [questionIndex]: score };
-    setResponses(nextResponses);
-    saveProgress(nextResponses, currentPage);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      const nextPage = currentPage + 1;
-      setCurrentPage(nextPage);
-      saveProgress(responses, nextPage);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      const prevPage = currentPage - 1;
-      setCurrentPage(prevPage);
-      saveProgress(responses, prevPage);
-    }
-  };
+  }, [activeQuestionIndex, startIndex, pageQuestions, loading, completed, errorMsg, handleSelectAnswer]);
 
   // Algoritmo de cálculo de escores e finalização do questionário
   const handleFinalize = async () => {
@@ -252,6 +253,7 @@ export const YsqForm: React.FC = () => {
       const firstUnansweredIndex = unanswered[0] - 1;
       const targetPage = Math.floor(firstUnansweredIndex / QUESTIONS_PER_PAGE) + 1;
       setCurrentPage(targetPage);
+      setActiveQuestionIndex(firstUnansweredIndex);
       return;
     }
 

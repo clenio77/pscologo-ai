@@ -9,7 +9,7 @@ export const DynamicFormRespondent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [form, setForm] = useState<PatientForm | null>(null);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, unknown>>({});
   const [savingStatus, setSavingStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [completed, setCompleted] = useState(false);
   const [validateTriggered, setValidateTriggered] = useState(false);
@@ -42,7 +42,7 @@ export const DynamicFormRespondent: React.FC = () => {
   }, [token]);
 
   // Função para salvar progresso automático em background
-  const saveProgress = async (newAnswers: Record<string, any>) => {
+  const saveProgress = async (newAnswers: Record<string, unknown>) => {
     if (!token) return;
     setSavingStatus('saving');
     try {
@@ -58,7 +58,7 @@ export const DynamicFormRespondent: React.FC = () => {
     }
   };
 
-  const handleInputChange = (fieldId: string, value: any) => {
+  const handleInputChange = (fieldId: string, value: unknown) => {
     const nextAnswers = { ...answers, [fieldId]: value };
     setAnswers(nextAnswers);
     saveProgress(nextAnswers);
@@ -304,39 +304,39 @@ export const DynamicFormRespondent: React.FC = () => {
 
                   <div className="field-input-container">
                     {field.type === 'text' && (
-                      <input 
-                        type="text" 
-                        id={field.id}
-                        className="form-input-text"
-                        placeholder="Escreva sua resposta curta aqui..."
-                        value={answers[field.id] || ''}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
-                      />
+                       <input 
+                         type="text" 
+                         id={field.id}
+                         className="form-input-text"
+                         placeholder="Escreva sua resposta curta aqui..."
+                         value={(answers[field.id] as string) || ''}
+                         onChange={(e) => handleInputChange(field.id, e.target.value)}
+                       />
                     )}
-
+ 
                     {field.type === 'textarea' && (
-                      <textarea 
-                        id={field.id}
-                        className="form-input-textarea"
-                        rows={4}
-                        placeholder="Escreva sua resposta detalhada aqui..."
-                        value={answers[field.id] || ''}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
-                      />
+                       <textarea 
+                         id={field.id}
+                         className="form-input-textarea"
+                         rows={4}
+                         placeholder="Escreva sua resposta detalhada aqui..."
+                         value={(answers[field.id] as string) || ''}
+                         onChange={(e) => handleInputChange(field.id, e.target.value)}
+                       />
                     )}
-
+ 
                     {field.type === 'select' && (
-                      <select 
-                        id={field.id}
-                        className="form-input-select"
-                        value={answers[field.id] || ''}
-                        onChange={(e) => handleInputChange(field.id, e.target.value)}
-                      >
-                        <option value="">Selecione uma opção...</option>
-                        {field.options?.map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                       <select 
+                         id={field.id}
+                         className="form-input-select"
+                         value={(answers[field.id] as string) || ''}
+                         onChange={(e) => handleInputChange(field.id, e.target.value)}
+                       >
+                         <option value="">Selecione uma opção...</option>
+                         {field.options?.map(opt => (
+                           <option key={opt} value={opt}>{opt}</option>
+                         ))}
+                       </select>
                     )}
 
                     {field.type === 'checkbox' && (
