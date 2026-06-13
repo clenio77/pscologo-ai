@@ -32,18 +32,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Mantém uma referência mutável do usuário atual para evitar re-subscrições no onAuthStateChange
   const currentUserRef = React.useRef<ProfessionalProfile | null>(null);
+  const isFetchingRef = React.useRef<string | null>(null);
+
   useEffect(() => {
     currentUserRef.current = user;
   }, [user]);
 
-  // Função para buscar dados da tabela profiles
+  // Função para buscar dados da tabela profiles com timeout de segurança de 8 segundos
   const fetchProfile = async (supabaseUser: User) => {
+    if (isFetchingRef.current === supabaseUser.id) {
+      return;
+    }
+    isFetchingRef.current = supabaseUser.id;
+
     try {
-      const { data, error } = await supabase
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
         .single();
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
+      );
+
+      // Corrida para evitar travamento da requisição de perfil caso a conexão caia
+      const { data, error } = await Promise.race([profilePromise, timeoutPromise]) as { data: any, error: any };
 
       if (error) {
         console.error('Erro ao buscar perfil da tabela profiles:', error);
@@ -71,7 +85,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUserRef.current = activeUser;
       }
     } catch (err) {
-      console.error('Erro no fetchProfile:', err);
+      console.error('Erro no fetchProfile (aplicando dados de fallback da sessão):', err);
+      // Fallback em caso de timeout ou falha de rede extrema para não travar o carregamento
+      const fallbackUser = {
+        id: supabaseUser.id,
+        email: supabaseUser.email || '',
+        name: supabaseUser.user_metadata?.name || 'Profissional',
+        specialty: supabaseUser.user_metadata?.specialty || 'Psicologia',
+        register_number: supabaseUser.user_metadata?.register_number || undefined,
+        phone: supabaseUser.user_metadata?.phone || undefined,
+      };
+      setUser(fallbackUser);
+      currentUserRef.current = fallbackUser;
+    } finally {
+      isFetchingRef.current = null;
     }
   };
 
@@ -263,6 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setUser(updatedProfile);
+      currentUserRef.current = updatedProfile;
       return { error: null };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Erro ao atualizar perfil';
@@ -275,6 +303,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await supabase.auth.signOut();
       setUser(null);
+      currentUserRef.current = null;
     } catch (err) {
       console.error('Erro ao fazer logout:', err);
     }
