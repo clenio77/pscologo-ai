@@ -16,6 +16,7 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
   const [generatingAi, setGeneratingAi] = useState(false);
   const [scores, setScores] = useState<any>(null);
   const [aiInterpretation, setAiInterpretation] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'scores' | 'ai'>('scores');
 
   const fetchResults = async () => {
     setLoading(true);
@@ -49,6 +50,7 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
 
   useEffect(() => {
     if (isOpen && submissionId) {
+      setActiveTab('scores');
       fetchResults();
     }
   }, [isOpen, submissionId]);
@@ -277,98 +279,154 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
                 </div>
               </div>
 
-              {/* Coluna 2: Lista e IA */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Consolidação por Domínio */}
-                <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', textAlign: 'left' }}>
-                  <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+              {/* Coluna 2: Lista e IA em Abas para melhor alinhamento visual */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Seletor de Abas */}
+                <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', gap: '8px', paddingBottom: '2px' }}>
+                  <button
+                    onClick={() => setActiveTab('scores')}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: activeTab === 'scores' ? '2px solid #4a7c59' : '2px solid transparent',
+                      color: activeTab === 'scores' ? '#4a7c59' : '#64748b',
+                      fontWeight: 'bold',
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
                     Pontuações por Domínio
-                  </h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {Object.entries(ysqDomains).map(([domainKey, domain]) => (
-                      <div key={domainKey} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                          {domain.label}
-                        </span>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '6px' }}>
-                          {domain.EIDs.map((eid) => {
-                            const val = scores ? parseFloat(scores[`${eid}_score`] || 1) : 1;
-                            const isCritical = val >= 4.0;
-                            return (
-                              <div
-                                key={eid}
-                                style={{
-                                  padding: '6px 10px',
-                                  borderRadius: '6px',
-                                  border: '1px solid',
-                                  fontSize: '0.78rem',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  background: isCritical ? '#fef2f2' : '#f8fafc',
-                                  borderColor: isCritical ? '#fca5a5' : '#e2e8f0',
-                                  color: isCritical ? '#991b1b' : '#334155',
-                                  fontWeight: isCritical ? 'bold' : 'normal'
-                                }}
-                              >
-                                <span title={ysqLabels[eid]}>{eid.toUpperCase()}</span>
-                                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{val.toFixed(2)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('ai')}
+                    style={{
+                      padding: '8px 16px',
+                      background: 'none',
+                      border: 'none',
+                      borderBottom: activeTab === 'ai' ? '2px solid #4a7c59' : '2px solid transparent',
+                      color: activeTab === 'ai' ? '#4a7c59' : '#64748b',
+                      fontWeight: 'bold',
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                      position: 'relative'
+                    }}
+                  >
+                    <Sparkles size={14} style={{ color: activeTab === 'ai' ? '#4a7c59' : '#94a3b8' }} />
+                    Formulação de Caso (IA)
+                    {aiInterpretation && (
+                      <span style={{
+                        position: 'absolute',
+                        top: '4px',
+                        right: '0px',
+                        width: '6px',
+                        height: '6px',
+                        background: '#10b981',
+                        borderRadius: '50%'
+                      }} />
+                    )}
+                  </button>
                 </div>
 
-                {/* Relatório Analítico IA */}
-                <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', textAlign: 'left' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '12px' }}>
-                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Sparkles size={16} style={{ color: '#4a7c59' }} />
-                      Formulação de Caso (IA)
+                {/* Conteúdo da Aba Ativa */}
+                {activeTab === 'scores' ? (
+                  <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', textAlign: 'left', overflowY: 'auto', maxHeight: '420px' }}>
+                    <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                      Pontuações por Domínio
                     </h4>
-                    <button
-                      onClick={handleGenerateAiInterpretation}
-                      disabled={generatingAi}
-                      className="btn"
-                      style={{ fontSize: '0.7rem', padding: '4px 8px', border: '1px solid #4a7c59', background: 'white', color: '#4a7c59', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
-                    >
-                      {generatingAi ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-                      Regenerar
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      {Object.entries(ysqDomains).map(([domainKey, domain]) => (
+                        <div key={domainKey} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {domain.label}
+                          </span>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '6px' }}>
+                            {domain.EIDs.map((eid) => {
+                              const val = scores ? parseFloat(scores[`${eid}_score`] || 1) : 1;
+                              const isCritical = val >= 4.0;
+                              return (
+                                <div
+                                  key={eid}
+                                  style={{
+                                    padding: '6px 10px',
+                                    borderRadius: '6px',
+                                    border: '1px solid',
+                                    fontSize: '0.78rem',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    background: isCritical ? '#fef2f2' : '#f8fafc',
+                                    borderColor: isCritical ? '#fca5a5' : '#e2e8f0',
+                                    color: isCritical ? '#991b1b' : '#334155',
+                                    fontWeight: isCritical ? 'bold' : 'normal'
+                                  }}
+                                >
+                                  <span title={ysqLabels[eid]}>{eid.toUpperCase()}</span>
+                                  <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{val.toFixed(2)}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-
-                  {generatingAi ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0' }}>
-                      <Loader2 size={24} className="animate-spin" style={{ color: '#4a7c59' }} />
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>O Gemini está estruturando o caso clínico...</p>
-                    </div>
-                  ) : aiInterpretation ? (
-                    <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5, maxHeight: '250px', overflowY: 'auto', paddingRight: '6px' }}>
-                      {aiInterpretation.split('\n').map((line, idx) => {
-                        if (line.startsWith('#')) {
-                          return <h5 key={idx} style={{ margin: '12px 0 4px', fontSize: '0.82rem', fontWeight: 'bold', color: '#1e293b' }}>{line.replace(/#+\s*/, '')}</h5>;
-                        }
-                        if (line.startsWith('*') || line.startsWith('-')) {
-                          return <li key={idx} style={{ marginLeft: '12px', marginTop: '2px', listStyleType: 'disc' }}>{line.replace(/^[*-\s]+/, '')}</li>;
-                        }
-                        return <p key={idx} style={{ margin: '0 0 8px' }}>{line}</p>;
-                      })}
-                    </div>
-                  ) : (
-                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                      <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 12px' }}>Ainda não há conceituação gerada pela IA.</p>
+                ) : (
+                  <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', textAlign: 'left', overflowY: 'auto', maxHeight: '420px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '12px' }}>
+                      <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Sparkles size={16} style={{ color: '#4a7c59' }} />
+                        Formulação de Caso (IA)
+                      </h4>
                       <button
                         onClick={handleGenerateAiInterpretation}
-                        style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#4a7c59', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        disabled={generatingAi}
+                        className="btn"
+                        style={{ fontSize: '0.7rem', padding: '4px 8px', border: '1px solid #4a7c59', background: 'white', color: '#4a7c59', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
                       >
-                        Gerar com Gemini
+                        {generatingAi ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                        Regenerar
                       </button>
                     </div>
-                  )}
-                </div>
+
+                    {generatingAi ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0' }}>
+                        <Loader2 size={24} className="animate-spin" style={{ color: '#4a7c59' }} />
+                        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>O Gemini está estruturando o caso clínico...</p>
+                      </div>
+                    ) : aiInterpretation ? (
+                      <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5 }}>
+                        {aiInterpretation.split('\n').map((line, idx) => {
+                          if (line.startsWith('#')) {
+                            return <h5 key={idx} style={{ margin: '12px 0 4px', fontSize: '0.82rem', fontWeight: 'bold', color: '#1e293b' }}>{line.replace(/#+\s*/, '')}</h5>;
+                          }
+                          if (line.startsWith('*') || line.startsWith('-')) {
+                            return <li key={idx} style={{ marginLeft: '12px', marginTop: '2px', listStyleType: 'disc' }}>{line.replace(/^[*-\s]+/, '')}</li>;
+                          }
+                          return <p key={idx} style={{ margin: '0 0 8px' }}>{line}</p>;
+                        })}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 12px' }}>Ainda não há conceituação gerada pela IA.</p>
+                        <button
+                          onClick={handleGenerateAiInterpretation}
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#4a7c59', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                          Gerar com Gemini
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
