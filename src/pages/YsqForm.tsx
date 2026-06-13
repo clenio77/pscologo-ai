@@ -26,6 +26,7 @@ export const YsqForm: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error'>('saved');
   const [completed, setCompleted] = useState(false);
+  const [attemptedFinalize, setAttemptedFinalize] = useState(false);
 
   const totalQuestions = ysqQuestions.length;
   const totalPages = Math.ceil(totalQuestions / QUESTIONS_PER_PAGE);
@@ -127,6 +128,7 @@ export const YsqForm: React.FC = () => {
 
     if (unanswered.length > 0) {
       alert(`Por favor, responda a todas as perguntas antes de finalizar. Faltam ${unanswered.length} perguntas.`);
+      setAttemptedFinalize(true);
       const firstUnansweredIndex = unanswered[0] - 1;
       const targetPage = Math.floor(firstUnansweredIndex / QUESTIONS_PER_PAGE) + 1;
       setCurrentPage(targetPage);
@@ -501,27 +503,53 @@ export const YsqForm: React.FC = () => {
               {saving ? <Loader2 size={16} className="animate-spin" /> : 'Finalizar e Enviar'}
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={handleNextPage}
-              disabled={saving}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '6px', 
-                padding: '10px 18px', 
-                background: 'white', 
-                border: '1px solid #cbd5e1', 
-                borderRadius: '8px', 
-                color: '#475569', 
-                fontWeight: 'bold', 
-                fontSize: '0.82rem', 
-                cursor: 'pointer',
-                transition: 'background 0.2s'
-              }}
-            >
-              Próximo <ChevronRight size={16} />
-            </button>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {attemptedFinalize && (
+                <button
+                  type="button"
+                  onClick={handleFinalize}
+                  disabled={saving}
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    padding: '10px 18px', 
+                    background: '#4a7c59', 
+                    border: 'none', 
+                    borderRadius: '8px', 
+                    color: 'white', 
+                    fontWeight: 'bold', 
+                    fontSize: '0.82rem', 
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    boxShadow: '0 4px 10px rgba(74, 124, 89, 0.15)'
+                  }}
+                >
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : 'Finalizar e Enviar'}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleNextPage}
+                disabled={saving}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  padding: '10px 18px', 
+                  background: 'white', 
+                  border: '1px solid #cbd5e1', 
+                  borderRadius: '8px', 
+                  color: '#475569', 
+                  fontWeight: 'bold', 
+                  fontSize: '0.82rem', 
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Próximo <ChevronRight size={16} />
+              </button>
+            </div>
           )}
 
         </div>
