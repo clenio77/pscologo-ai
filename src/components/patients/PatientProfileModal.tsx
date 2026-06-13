@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Edit3, User, Phone, Heart, FileText } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Save, Edit3, User, Phone, Heart, FileText, ShieldAlert } from 'lucide-react';
 import { api } from '../../services/api';
 import type { Patient, PatientProfile } from '../../services/api';
 import { calculateAge } from '../../utils/formatters';
@@ -473,26 +474,32 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
         patientName={patient.name}
       />
 
-      {isCrisisOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl flex flex-col max-h-[85vh]">
-            <div className="p-6 border-b flex justify-between items-center bg-[#fdf2f2] rounded-t-2xl">
+      {isCrisisOpen && createPortal(
+        <div className="modal-overlay" style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(4px)' }}>
+          <div className="modal-content" style={{ maxWidth: '750px', width: '95%', display: 'flex', flexDirection: 'column', maxHeight: '85vh', background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div className="modal-header" style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fdf2f2' }}>
               <div>
-                <h3 className="font-extrabold text-[#991b1b] text-lg">Histórico de Crises e Triagem</h3>
-                <p className="text-xs text-red-600 mt-1">Acompanhamento de check-ins de crise e prevenção de suicídio</p>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem', fontWeight: 800, color: '#991b1b' }}>
+                  <ShieldAlert size={20} style={{ color: '#dc2626' }} />
+                  Histórico de Crises e Triagem
+                </h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#b91c1c' }}>Acompanhamento de check-ins de crise e prevenção de suicídio para **{patient.name}**</p>
               </div>
-              <button onClick={() => setIsCrisisOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-lg">×</button>
+              <button className="close-btn" onClick={() => setIsCrisisOpen(false)} style={{ background: 'none', border: 'none', color: '#fca5a5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <X size={20} />
+              </button>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+            <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', flex: 1, background: '#f8fafc', maxHeight: '60vh' }}>
               <CrisisHistory patientId={patient.id} patientName={patient.name} />
             </div>
-            <div className="p-4 border-t bg-[#f9faf9] rounded-b-2xl flex justify-end">
-              <button onClick={() => setIsCrisisOpen(false)} className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-600">
+            <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '16px 24px', display: 'flex', justifyContent: 'end', background: '#f8fafc' }}>
+              <button className="btn btn-secondary" onClick={() => setIsCrisisOpen(false)} style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', background: 'white', color: '#475569' }}>
                 Fechar Histórico
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

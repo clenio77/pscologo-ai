@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../services/supabaseClient';
-import { Loader2, Copy, Send, Calendar, Eye, ClipboardCheck } from 'lucide-react';
+import { Loader2, Copy, Send, Calendar, Eye, ClipboardCheck, X } from 'lucide-react';
 
 interface Submission {
   id: string;
@@ -105,17 +106,6 @@ export const YsqApplyModal: React.FC<YsqApplyModalProps> = ({
     window.open(whatsappUrl, '_blank');
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'completed':
@@ -133,111 +123,143 @@ export const YsqApplyModal: React.FC<YsqApplyModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div className="modal-overlay" style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(4px)' }}>
+      <div className="modal-content" style={{ maxWidth: '650px', width: '95%', display: 'flex', flexDirection: 'column', maxHeight: '85vh', background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
         {/* Header */}
-        <div className="p-6 border-b flex justify-between items-center bg-[#f4f7f5] rounded-t-2xl">
+        <div className="modal-header" style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
           <div>
-            <h3 className="font-extrabold text-[#2b3a30] text-lg">Questionário de Esquemas de Young (YSQ-L3)</h3>
-            <p className="text-xs text-gray-500 mt-1">Aplicação e monitoramento de testes para **{patientName}**</p>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+              <ClipboardCheck size={20} style={{ color: '#4a7c59' }} />
+              Questionário de Esquemas de Young
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+              Gerenciamento do YSQ-L3 para **{patientName}**
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold text-lg">×</button>
+          <button className="close-btn" onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Corpo */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* Botão de gerar nova aplicação */}
-          <div className="bg-[#fdfefd] p-4 rounded-xl border border-[#4a7c59]/20 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-left">
-              <h4 className="font-bold text-sm text-[#2b3a30]">Gerar Nova Aplicação</h4>
-              <p className="text-xs text-gray-500">Cria um link criptografado e exclusivo para o paciente responder.</p>
+        {/* Body */}
+        <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '60vh' }}>
+          
+          {/* Gerar Nova Aplicação */}
+          <div style={{ background: 'linear-gradient(135deg, #f4fbf6 0%, #eefcf0 100%)', border: '1px solid #bbf7d0', padding: '18px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(74, 124, 89, 0.05)' }}>
+            <div style={{ textAlign: 'left', flex: 1, minWidth: '200px' }}>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 'bold', color: '#14532d' }}>Aplicar Questionário</h4>
+              <p style={{ margin: '4px 0 0', fontSize: '0.78rem', color: '#166534', lineHeight: 1.4 }}>
+                Gere um link criptografado e de uso único para o paciente responder diretamente no celular ou computador.
+              </p>
             </div>
             <button
               onClick={handleCreateSubmission}
               disabled={creating}
-              className="px-5 py-2.5 bg-[#4a7c59] hover:bg-[#3d664a] disabled:opacity-50 text-white rounded-lg font-bold text-sm flex items-center gap-1.5 shadow-sm transition-colors w-full md:w-auto justify-center"
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', fontSize: '0.85rem', fontWeight: 'bold', background: '#4a7c59', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(74, 124, 89, 0.2)' }}
             >
-              {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+              {creating ? <Loader2 size={16} className="animate-spin" /> : <ClipboardCheck size={16} />}
               Gerar Link do Teste
             </button>
           </div>
 
           {/* Histórico */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-xs text-gray-400 uppercase tracking-wider">Aplicações Realizadas</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h4 style={{ margin: '8px 0 4px', fontSize: '0.78rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>
+              Aplicações Realizadas
+            </h4>
             
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin text-[#4a7c59]" />
-                <p className="text-xs text-gray-500 mt-2">Buscando histórico...</p>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 0' }}>
+                <Loader2 size={32} className="animate-spin" style={{ color: '#4a7c59' }} />
+                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '8px' }}>Carregando histórico do YSQ...</p>
               </div>
             ) : submissions.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">Nenhum teste gerado ainda.</p>
+              <div style={{ padding: '32px', border: '2px dashed #e2e8f0', borderRadius: '12px', textAlign: 'center', background: '#f8fafc' }}>
+                <ClipboardCheck size={32} style={{ color: '#cbd5e1', margin: '0 auto 8px' }} />
+                <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>Nenhum teste foi gerado para este paciente ainda.</p>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {submissions.map((sub) => (
-                  <div key={sub.id} className="p-4 rounded-xl border bg-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-gray-50 rounded-lg">
-                        <Calendar className="w-5 h-5 text-gray-400" />
+                  <div key={sub.id} style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '16px', padding: '16px', border: '1px solid #e2e8f0', borderRadius: '12px', background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'transform 0.15s, box-shadow 0.15s' }}>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+                      <div style={{ padding: '8px', background: '#f1f5f9', borderRadius: '8px', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Calendar size={18} />
                       </div>
                       <div>
-                        <span className="block text-sm font-bold text-gray-700">Criado em: {formatDate(sub.created_at)}</span>
-                        <span className="text-xs text-gray-400">
-                          {sub.completed_at ? `Concluído em ${formatDate(sub.completed_at)}` : `Página atual: ${sub.current_page}`}
+                        <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>
+                          Gerado em {formatDate(sub.created_at)}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          {sub.completed_at ? `Concluído em ${formatDate(sub.completed_at)}` : `Progresso: Página ${sub.current_page}`}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${getStatusBadge(sub.status)}`}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        padding: '3px 8px', 
+                        borderRadius: '999px',
+                        fontWeight: 'bold',
+                        border: '1px solid',
+                        background: sub.status === 'completed' ? '#f0fdf4' : sub.status === 'in_progress' ? '#fef9c3' : '#f1f5f9',
+                        color: sub.status === 'completed' ? '#166534' : sub.status === 'in_progress' ? '#854d0e' : '#475569',
+                        borderColor: sub.status === 'completed' ? '#bbf7d0' : sub.status === 'in_progress' ? '#fef08a' : '#cbd5e1'
+                      }}>
                         {getStatusLabel(sub.status)}
                       </span>
 
                       {sub.status === 'completed' ? (
                         <button
                           onClick={() => onViewResults(sub.id)}
-                          className="px-3 py-1.5 bg-[#4a7c59] hover:bg-[#3d664a] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                          className="btn btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', background: '#4a7c59', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                         >
-                          <Eye className="w-3.5 h-3.5" /> Ver Resultados
+                          <Eye size={14} /> Ver Resultados
                         </button>
                       ) : (
-                        <>
+                        <div style={{ display: 'flex', gap: '6px' }}>
                           <button
                             onClick={() => handleCopyLink(sub.id)}
-                            className="p-1.5 border border-gray-200 hover:bg-gray-50 text-gray-500 rounded-lg"
+                            className="btn"
+                            style={{ padding: '6px 10px', fontSize: '0.75rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#475569', borderRadius: '6px', cursor: 'pointer' }}
                             title="Copiar Link"
                           >
-                            <Copy className="w-4 h-4" />
+                            <Copy size={14} />
                           </button>
                           <button
                             onClick={() => handleSendWhatsApp(sub.id)}
-                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors"
+                            className="btn"
+                            style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#25d366', color: 'white', display: 'flex', alignItems: 'center', gap: '4px', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                           >
-                            <Send className="w-3 h-3" /> WhatsApp
+                            <Send size={12} /> WhatsApp
                           </button>
-                        </>
+                        </div>
                       )}
                     </div>
+
                   </div>
                 ))}
               </div>
             )}
           </div>
+
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-[#f9faf9] rounded-b-2xl flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-600"
-          >
+        <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '16px 24px', display: 'flex', justifyContent: 'end', background: '#f8fafc' }}>
+          <button className="btn btn-secondary" onClick={onClose} style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', background: 'white', color: '#475569' }}>
             Fechar
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
 export default YsqApplyModal;

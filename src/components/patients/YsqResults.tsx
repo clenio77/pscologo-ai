@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../services/supabaseClient';
-import { Loader2, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, RefreshCw, AlertCircle, Eye, X } from 'lucide-react';
 import { ysqLabels, ysqDomains } from '../../utils/ysqQuestions';
 
 interface YsqResultsProps {
@@ -104,11 +105,11 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
   const renderRadarChart = () => {
     if (!scores) return null;
 
-    const width = 320;
-    const height = 320;
+    const width = 300;
+    const height = 300;
     const cx = width / 2;
     const cy = height / 2;
-    const maxRadius = 110;
+    const maxRadius = 100;
     const numPoints = eids.length;
 
     // 1. Gera caminhos dos círculos concêntricos de escala (1 a 6)
@@ -121,7 +122,7 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
           cy={cy}
           r={r}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="#e2e8f0"
           strokeWidth="1"
           strokeDasharray={scale === 6 ? '0' : '3,3'}
         />
@@ -147,7 +148,7 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
       polygonPoints.push(`${xVal},${yVal}`);
 
       // Coordenadas de posicionamento do rótulo (afastado da borda)
-      const rLabel = maxRadius + 15;
+      const rLabel = maxRadius + 14;
       const xLabel = cx + rLabel * Math.cos(angle);
       const yLabel = cy + rLabel * Math.sin(angle);
 
@@ -158,7 +159,7 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
           y1={cy}
           x2={xOuter}
           y2={yOuter}
-          stroke="#e5e7eb"
+          stroke="#f1f5f9"
           strokeWidth="1"
         />
       );
@@ -173,7 +174,11 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
           y={yLabel}
           textAnchor="middle"
           dominantBaseline="middle"
-          className={`text-[9px] font-bold ${isCritical ? 'fill-red-600 font-extrabold' : 'fill-gray-500'}`}
+          style={{
+            fontSize: '8px',
+            fontWeight: 'bold',
+            fill: isCritical ? '#dc2626' : '#64748b'
+          }}
         >
           {eid.toUpperCase()}
         </text>
@@ -181,7 +186,7 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
     });
 
     return (
-      <svg width={width} height={height} className="mx-auto select-none">
+      <svg width={width} height={height} style={{ margin: '0 auto', display: 'block', userSelect: 'none' }}>
         {/* Círculos concêntricos */}
         {scaleCircles}
 
@@ -192,9 +197,9 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
         {polygonPoints.length > 0 && (
           <polygon
             points={polygonPoints.join(' ')}
-            fill="rgba(74, 124, 89, 0.25)"
+            fill="rgba(74, 124, 89, 0.22)"
             stroke="#4a7c59"
-            strokeWidth="2.5"
+            strokeWidth="2"
             strokeLinejoin="round"
           />
         )}
@@ -213,10 +218,10 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
               key={`dot-${eid}`}
               cx={xVal}
               cy={yVal}
-              r="4.5"
+              r="3.5"
               fill={isCritical ? '#dc2626' : '#4a7c59'}
               stroke="white"
-              strokeWidth="1.5"
+              strokeWidth="1"
             >
               <title>{`${ysqLabels[eid]}: ${score}`}</title>
             </circle>
@@ -226,71 +231,88 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-4xl rounded-2xl shadow-xl flex flex-col max-h-[90vh]">
+  return createPortal(
+    <div className="modal-overlay" style={{ zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.45)', backdropFilter: 'blur(4px)' }}>
+      <div className="modal-content" style={{ maxWidth: '850px', width: '95%', display: 'flex', flexDirection: 'column', maxHeight: '90vh', background: 'white', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
         {/* Header */}
-        <div className="p-6 border-b flex justify-between items-center bg-[#f4f7f5] rounded-t-2xl">
+        <div className="modal-header" style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc' }}>
           <div>
-            <h3 className="font-extrabold text-[#2b3a30] text-lg">Resultados Clinicos — YSQ-L3</h3>
-            <p className="text-xs text-gray-500 mt-1">Escores de Esquemas e Formulação de Caso para **{patientName}**</p>
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+              <Eye size={20} style={{ color: '#4a7c59' }} />
+              Resultados Clínicos — YSQ-L3
+            </h3>
+            <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+              Esquemas Iniciais Desadaptativos de **{patientName}**
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold text-lg">×</button>
+          <button className="close-btn" onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={20} />
+          </button>
         </div>
 
-        {/* Corpo */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 bg-gray-50/50">
+        {/* Body */}
+        <div className="modal-body" style={{ padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '65vh', background: '#f8fafc' }}>
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16">
-              <Loader2 className="w-10 h-10 animate-spin text-[#4a7c59]" />
-              <p className="text-sm text-gray-500 mt-2">Buscando escores do questionário...</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0' }}>
+              <Loader2 size={36} className="animate-spin" style={{ color: '#4a7c59' }} />
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '8px' }}>Carregando pontuações...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Coluna 1: Gráfico Radar e Escores Rápidos */}
-              <div className="lg:col-span-5 bg-white p-5 rounded-2xl border flex flex-col justify-between">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+              {/* Coluna 1: Radar Chart */}
+              <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
                 <div>
-                  <h4 className="font-bold text-sm text-[#2b3a30] mb-4 text-center border-b pb-2">
-                    Teia de Ativação dos 18 Esquemas
+                  <h4 style={{ margin: '0 0 16px', fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', textAlign: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    Perfil Esquemático (Teia de 18 Esquemas)
                   </h4>
                   {renderRadarChart()}
                 </div>
 
-                <div className="mt-4 p-3 bg-red-50/50 border border-red-100 rounded-xl flex gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                  <div className="text-xs">
-                    <span className="font-bold text-red-800 block">Identificação de Alertas</span>
-                    <span className="text-red-700">
-                      Siglas em vermelho representam escores clínicos severos ($\ge 4.0$).
-                    </span>
+                <div style={{ display: 'flex', gap: '8px', background: '#fef2f2', border: '1px solid #fee2e2', padding: '12px', borderRadius: '8px', marginTop: '16px', textAlign: 'left' }}>
+                  <AlertCircle size={18} style={{ color: '#ef4444', flexShrink: 0 }} />
+                  <div style={{ fontSize: '0.75rem', color: '#991b1b' }}>
+                    <span style={{ fontWeight: 'bold', display: 'block' }}>Esquemas em Alerta</span>
+                    Siglas destacadas em vermelho indicam ativação clínica alta ou severa (média aritmética $\ge 4.0$).
                   </div>
                 </div>
               </div>
 
-              {/* Coluna 2: Detalhes por Domínio de Esquemas e IA */}
-              <div className="lg:col-span-7 space-y-6">
-                {/* Visualizador de Escores e Domínios */}
-                <div className="bg-white p-5 rounded-2xl border">
-                  <h4 className="font-bold text-sm text-[#2b3a30] mb-4 border-b pb-2">Escores Consolidados por Domínio</h4>
-                  <div className="space-y-4">
+              {/* Coluna 2: Lista e IA */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Consolidação por Domínio */}
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', textAlign: 'left' }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px' }}>
+                    Pontuações por Domínio
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
                     {Object.entries(ysqDomains).map(([domainKey, domain]) => (
-                      <div key={domainKey} className="space-y-2">
-                        <span className="block text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <div key={domainKey} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           {domain.label}
                         </span>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '6px' }}>
                           {domain.EIDs.map((eid) => {
                             const val = scores ? parseFloat(scores[`${eid}_score`] || 1) : 1;
                             const isCritical = val >= 4.0;
                             return (
                               <div
                                 key={eid}
-                                className={`p-2 rounded-lg border text-xs flex justify-between items-center ${
-                                  isCritical ? 'bg-red-50 border-red-200 text-red-700 font-extrabold' : 'bg-white text-gray-700'
-                                }`}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: '6px',
+                                  border: '1px solid',
+                                  fontSize: '0.78rem',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  background: isCritical ? '#fef2f2' : '#f8fafc',
+                                  borderColor: isCritical ? '#fca5a5' : '#e2e8f0',
+                                  color: isCritical ? '#991b1b' : '#334155',
+                                  fontWeight: isCritical ? 'bold' : 'normal'
+                                }}
                               >
                                 <span title={ysqLabels[eid]}>{eid.toUpperCase()}</span>
-                                <span className="font-mono text-xs">{val.toFixed(2)}</span>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.75rem' }}>{val.toFixed(2)}</span>
                               </div>
                             );
                           })}
@@ -300,50 +322,49 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
                   </div>
                 </div>
 
-                {/* Relatório Analítico do Gemini */}
-                <div className="bg-white p-5 rounded-2xl border">
-                  <div className="flex items-center justify-between border-b pb-3 mb-4">
-                    <div className="flex items-center gap-1.5 text-[#4a7c59]">
-                      <Sparkles className="w-5 h-5 fill-current" />
-                      <h4 className="font-extrabold text-sm text-[#2b3a30]">Interpretação Clínica com IA</h4>
-                    </div>
-                    
+                {/* Relatório Analítico IA */}
+                <div style={{ background: 'white', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '12px', textAlign: 'left' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '12px' }}>
+                    <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Sparkles size={16} style={{ color: '#4a7c59' }} />
+                      Formulação de Caso (IA)
+                    </h4>
                     <button
                       onClick={handleGenerateAiInterpretation}
                       disabled={generatingAi}
-                      className="text-xs text-[#4a7c59] hover:text-[#3d664a] border border-[#4a7c59]/20 hover:bg-[#4a7c59]/5 px-2.5 py-1.5 rounded-lg flex items-center gap-1 transition-colors font-semibold"
+                      className="btn"
+                      style={{ fontSize: '0.7rem', padding: '4px 8px', border: '1px solid #4a7c59', background: 'white', color: '#4a7c59', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
                     >
-                      {generatingAi ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                      Regenerar Relatório
+                      {generatingAi ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
+                      Regenerar
                     </button>
                   </div>
 
                   {generatingAi ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <Loader2 className="w-8 h-8 animate-spin text-[#4a7c59]" />
-                      <p className="text-xs text-gray-500 mt-2">O Gemini está ouvindo seus dados para estruturar o caso...</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 0' }}>
+                      <Loader2 size={24} className="animate-spin" style={{ color: '#4a7c59' }} />
+                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '6px' }}>O Gemini está estruturando o caso clínico...</p>
                     </div>
                   ) : aiInterpretation ? (
-                    <div className="text-xs text-gray-700 leading-relaxed space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                    <div style={{ fontSize: '0.78rem', color: '#475569', lineHeight: 1.5, maxHeight: '250px', overflowY: 'auto', paddingRight: '6px' }}>
                       {aiInterpretation.split('\n').map((line, idx) => {
                         if (line.startsWith('#')) {
-                          return <h5 key={idx} className="font-extrabold text-gray-800 text-sm mt-3 mb-1">{line.replace(/#+\s*/, '')}</h5>;
+                          return <h5 key={idx} style={{ margin: '12px 0 4px', fontSize: '0.82rem', fontWeight: 'bold', color: '#1e293b' }}>{line.replace(/#+\s*/, '')}</h5>;
                         }
                         if (line.startsWith('*') || line.startsWith('-')) {
-                          return <li key={idx} className="list-disc ml-4 mt-0.5">{line.replace(/^[*-\s]+/, '')}</li>;
+                          return <li key={idx} style={{ marginLeft: '12px', marginTop: '2px', listStyleType: 'disc' }}>{line.replace(/^[*-\s]+/, '')}</li>;
                         }
-                        return <p key={idx} className="mb-2 whitespace-pre-wrap">{line}</p>;
+                        return <p key={idx} style={{ margin: '0 0 8px' }}>{line}</p>;
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <Sparkles className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-xs text-gray-500 mb-4">Ainda não há conceituação gerada pela IA para esta submissão.</p>
+                    <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                      <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 12px' }}>Ainda não há conceituação gerada pela IA.</p>
                       <button
                         onClick={handleGenerateAiInterpretation}
-                        className="px-4 py-2 bg-[#4a7c59] hover:bg-[#3d664a] text-white text-xs font-bold rounded-lg shadow-sm"
+                        style={{ padding: '6px 12px', fontSize: '0.75rem', background: '#4a7c59', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
-                        Gerar Análise com Gemini
+                        Gerar com Gemini
                       </button>
                     </div>
                   )}
@@ -354,16 +375,15 @@ export const YsqResults: React.FC<YsqResultsProps> = ({ isOpen, onClose, submiss
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-[#f9faf9] rounded-b-2xl flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-600"
-          >
-            Fechar Resultados
+        <div className="modal-footer" style={{ borderTop: '1px solid #f1f5f9', padding: '16px 24px', display: 'flex', justifyContent: 'end', background: '#f8fafc' }}>
+          <button className="btn btn-secondary" onClick={onClose} style={{ padding: '8px 16px', fontSize: '0.85rem', borderRadius: '6px', cursor: 'pointer', border: '1px solid #cbd5e1', background: 'white', color: '#475569' }}>
+            Fechar
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
 export default YsqResults;
