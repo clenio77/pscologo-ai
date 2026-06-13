@@ -12,14 +12,16 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, model = 'gemini-2.5-flash', temperature = 0.2, responseMimeType } = await req.json()
-
-    if (!prompt) {
-      return new Response(
-        JSON.stringify({ error: 'O prompt é obrigatório.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    const payload = await req.json()
+    const { 
+      action = 'generateText', 
+      prompt, 
+      audioBase64, 
+      audioMimeType = 'audio/mp3',
+      model = 'gemini-2.5-flash', 
+      temperature = 0.2, 
+      responseMimeType 
+    } = payload
 
     const apiKey = Deno.env.get('GEMINI_API_KEY')
     if (!apiKey) {
@@ -31,16 +33,48 @@ serve(async (req) => {
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
     
-    const geminiPayload: any = {
-      contents: [
-        {
-          parts: [
-            { text: prompt }
-          ]
+    let geminiPayload: any = {}
+
+    if (action === 'analyzeAudio' && audioBase64) {
+      geminiPayload = {
+        contents: [
+          {
+            parts: [
+              {
+                inlineData: {
+                  mimeType: audioMimeType,
+                  data: audioBase64
+                }
+              },
+              {
+                text: prompt || "Transcreva este áudio em português e analise a gravidade do risco clínico de crise."
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: temperature,
         }
-      ],
-      generationConfig: {
-        temperature: temperature,
+      }
+    } else {
+      // Padrão: Prompt de texto comum
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: 'O prompt é obrigatório para geração de texto.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      geminiPayload = {
+        contents: [
+          {
+            parts: [
+              { text: prompt }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: temperature,
+        }
       }
     }
 

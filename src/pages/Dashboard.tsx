@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import type { Appointment } from '../services/api';
 import { sendWhatsAppReminder } from '../utils/whatsapp';
+import { supabase } from '../services/supabaseClient';
 import { 
   Users, 
   Calendar as CalendarIcon, 
@@ -13,7 +14,8 @@ import {
   PlusCircle, 
   Heart, 
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  ShieldAlert
 } from 'lucide-react';
 import './Dashboard.css';
 
@@ -38,6 +40,7 @@ export const Dashboard: React.FC = () => {
   });
   const [todayAppsList, setTodayAppsList] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [crisisAlerts, setCrisisAlerts] = useState<any[]>([]);
 
   // Inicializa a citação de forma lazy baseada no dia do mês para evitar cascading renders
   const [quote] = useState(() => {
@@ -76,6 +79,23 @@ export const Dashboard: React.FC = () => {
       });
 
       setTodayAppsList(todayApps);
+
+      // Busca check-ins de crise críticos das últimas 24 horas para os pacientes do terapeuta
+      const twentyFourHoursAgo = new Date();
+      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+
+      try {
+        const { data: crisisData } = await supabase
+          .from('patient_crisis_checkins')
+          .select('*, patients(name)')
+          .eq('professional_id', user.id)
+          .in('risk_level', ['high', 'critical'])
+          .gt('created_at', twentyFourHoursAgo.toISOString());
+
+        setCrisisAlerts(crisisData || []);
+      } catch (crisisErr) {
+        console.warn('Erro ao carregar alertas de crise:', crisisErr);
+      }
     } catch (err) {
       console.error('Erro ao carregar dados do dashboard:', err);
     } finally {
@@ -99,6 +119,38 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="dashboard-page">
+      {/* 🚨 Card de Alerta Crítico de Crise */}
+      {crisisAlerts.length > 0 && (
+        <div style={{ background: '#fee2e2', border: '2px solid #ef4444', borderRadius: '16px', padding: '20px', marginBottom: '20px', boxShadow: '0 4px 12px rgba(239, 68, 68, 0.15)', display: 'flex', flexDirection: 'column', gap: '12px', animation: 'pulse-red 2s infinite ease-in-out' }} className="animate-slide-up">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626' }}>
+            <ShieldAlert size={26} />
+            <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 'bold' }}>Alerta de Crise: Paciente em Sofrimento Agudo!</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {crisisAlerts.map((alert) => (
+              <div key={alert.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(239, 68, 68, 0.08)', padding: '10px 14px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.15)', fontSize: '0.8rem', color: '#7f1d1d' }}>
+                <span>
+                  O paciente <strong>{alert.patients?.name}</strong> respondeu ao check-in às <strong>{new Date(alert.created_at).toLocaleTimeString('pt-BR')}</strong> com nível de risco <strong>{alert.risk_level.toUpperCase()}</strong>.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => navigate('/pacientes')}
+                  style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.2s' }}
+                >
+                  Ver Ficha
+                </button>
+              </div>
+            ))}
+          </div>
+          <style>{`
+            @keyframes pulse-red {
+              0%, 100% { border-color: #ef4444; }
+              50% { border-color: #f87171; box-shadow: 0 4px 18px rgba(239, 68, 68, 0.25); }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* 1. Card de Citação de Boas-Vindas */}
       <div className="welcome-quote-card card animate-slide-up">
         <div className="quote-icon-container">

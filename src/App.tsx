@@ -11,6 +11,8 @@ const Dashboard = lazy(() => import('./pages/Dashboard').then(module => ({ defau
 const Patients = lazy(() => import('./pages/Patients').then(module => ({ default: module.Patients })));
 const Agenda = lazy(() => import('./pages/Agenda').then(module => ({ default: module.Agenda })));
 const Forms = lazy(() => import('./pages/Forms').then(module => ({ default: module.Forms })));
+const YsqForm = lazy(() => import('./pages/YsqForm').then(module => ({ default: module.YsqForm })));
+const CrisisCheckIn = lazy(() => import('./pages/CrisisCheckIn').then(module => ({ default: module.CrisisCheckIn })));
 
 const LoadingScreen = () => (
   <div className="loading-screen">
@@ -87,9 +89,23 @@ const LoadingScreen = () => (
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
+  const path = window.location.pathname;
+  const isPublicRoute = path.startsWith('/responder-ysq') || path.startsWith('/crise');
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (isPublicRoute) {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route path="/responder-ysq/:token" element={<YsqForm />} />
+          <Route path="/crise/:token" element={<CrisisCheckIn />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    );
   }
 
   // Se o profissional não estiver logado, exibe tela de login/cadastro

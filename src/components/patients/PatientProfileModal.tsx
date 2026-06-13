@@ -3,6 +3,10 @@ import { X, Save, Edit3, User, Phone, Heart, FileText } from 'lucide-react';
 import { api } from '../../services/api';
 import type { Patient, PatientProfile } from '../../services/api';
 import { calculateAge } from '../../utils/formatters';
+import { YsqApplyModal } from './YsqApplyModal';
+import { YsqResults } from './YsqResults';
+import { SafetyPlanModal } from './SafetyPlanModal';
+import { CrisisHistory } from './CrisisHistory';
 
 interface PatientProfileModalProps {
   isOpen: boolean;
@@ -47,6 +51,12 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  
+  const [isYsqOpen, setIsYsqOpen] = useState(false);
+  const [isSafetyOpen, setIsSafetyOpen] = useState(false);
+  const [isCrisisOpen, setIsCrisisOpen] = useState(false);
+  const [activeYsqSubmission, setActiveYsqSubmission] = useState<string | null>(null);
+  const [isYsqResultsOpen, setIsYsqResultsOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -304,6 +314,40 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
                 </div>
               </div>
 
+              {/* SEÇÃO DE AVALIAÇÕES E MONITORAMENTO DE CRISE */}
+              <div style={{ background: '#f4fbf6', borderRadius: '12px', padding: '16px', border: '1px solid #cce8d5', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#2b3a30', margin: 0 }}>Monitoramento Clínico Avançado</h4>
+                  <p style={{ fontSize: '0.75rem', color: '#5e7364', margin: '2px 0 0' }}>Gerencie o questionário YSQ-L3 e o diário preventivo de crise.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  <button 
+                    type="button" 
+                    className="btn" 
+                    style={{ background: 'white', border: '1px solid #4a7c59', color: '#4a7c59', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={() => setIsYsqOpen(true)}
+                  >
+                    📝 Aplicar YSQ-L3
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn" 
+                    style={{ background: 'white', border: '1px solid #d97706', color: '#d97706', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={() => setIsSafetyOpen(true)}
+                  >
+                    🛡️ Plano de Segurança
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn" 
+                    style={{ background: 'white', border: '1px solid #dc2626', color: '#dc2626', padding: '6px 12px', fontSize: '0.8rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                    onClick={() => setIsCrisisOpen(true)}
+                  >
+                    🚨 Histórico de Crises
+                  </button>
+                </div>
+              </div>
+
               {/* Mensagens de erro/sucesso */}
               {error && (
                 <div className="message-alert message-error" style={{ margin: 0 }}>{error}</div>
@@ -399,6 +443,57 @@ export const PatientProfileModal: React.FC<PatientProfileModalProps> = ({
           )}
         </div>
       </div>
+      
+      {/* Modais de controle integrados */}
+      <YsqApplyModal
+        isOpen={isYsqOpen}
+        onClose={() => setIsYsqOpen(false)}
+        patientId={patient.id}
+        patientName={patient.name}
+        patientPhone={patient.phone}
+        onViewResults={(subId) => {
+          setActiveYsqSubmission(subId);
+          setIsYsqResultsOpen(true);
+        }}
+      />
+
+      {activeYsqSubmission && (
+        <YsqResults
+          isOpen={isYsqResultsOpen}
+          onClose={() => setIsYsqResultsOpen(false)}
+          submissionId={activeYsqSubmission}
+          patientName={patient.name}
+        />
+      )}
+
+      <SafetyPlanModal
+        isOpen={isSafetyOpen}
+        onClose={() => setIsSafetyOpen(false)}
+        patientId={patient.id}
+        patientName={patient.name}
+      />
+
+      {isCrisisOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl flex flex-col max-h-[85vh]">
+            <div className="p-6 border-b flex justify-between items-center bg-[#fdf2f2] rounded-t-2xl">
+              <div>
+                <h3 className="font-extrabold text-[#991b1b] text-lg">Histórico de Crises e Triagem</h3>
+                <p className="text-xs text-red-600 mt-1">Acompanhamento de check-ins de crise e prevenção de suicídio</p>
+              </div>
+              <button onClick={() => setIsCrisisOpen(false)} className="text-gray-400 hover:text-gray-600 font-bold text-lg">×</button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-gray-50/50">
+              <CrisisHistory patientId={patient.id} patientName={patient.name} />
+            </div>
+            <div className="p-4 border-t bg-[#f9faf9] rounded-b-2xl flex justify-end">
+              <button onClick={() => setIsCrisisOpen(false)} className="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-gray-50 text-gray-600">
+                Fechar Histórico
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
