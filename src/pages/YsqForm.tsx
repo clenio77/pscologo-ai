@@ -65,6 +65,11 @@ export const YsqForm: React.FC = () => {
     fetchSubmission();
   }, [token]);
 
+  // Rola para o topo de forma instantânea quando o paciente muda de página no questionário
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentPage]);
+
   // Função para salvar progresso temporário
   const saveProgress = async (updatedResponses: Record<number, number>, page: number) => {
     if (!token) return;
@@ -100,7 +105,6 @@ export const YsqForm: React.FC = () => {
       const nextPage = currentPage + 1;
       setCurrentPage(nextPage);
       saveProgress(responses, nextPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -109,7 +113,6 @@ export const YsqForm: React.FC = () => {
       const prevPage = currentPage - 1;
       setCurrentPage(prevPage);
       saveProgress(responses, prevPage);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
