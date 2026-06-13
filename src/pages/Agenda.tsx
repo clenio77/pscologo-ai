@@ -3,6 +3,9 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../services/api';
 import type { Appointment, Patient } from '../services/api';
+import { sendWhatsAppReminder } from '../utils/whatsapp';
+import { AppointmentModal } from '../components/calendar/AppointmentModal';
+import { AppointmentDetailModal } from '../components/calendar/AppointmentDetailModal';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
@@ -10,16 +13,9 @@ import {
   Plus, 
   Clock, 
   User, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
-  MessageSquare,
-  X,
-  Phone,
-  Trash2
+  MessageSquare
 } from 'lucide-react';
 import './Agenda.css';
-import { Portal } from '../components/Portal';
 
 export const Agenda: React.FC = () => {
   const { user } = useAuth();
@@ -38,13 +34,7 @@ export const Agenda: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
-  // States de Formulário de Nova Consulta
-  const [selectedPatientId, setSelectedPatientId] = useState('');
-  const [appDate, setAppDate] = useState('');
-  const [appTime, setAppTime] = useState('08:00');
-  const [appDuration, setAppDuration] = useState(50);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [appNotes, setAppNotes] = useState('');
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -57,9 +47,6 @@ export const Agenda: React.FC = () => {
       ]);
       setAppointments(appData);
       setPatients(patientData);
-      if (patientData.length > 0) {
-        setSelectedPatientId(patientData[0].id);
-      }
     } catch (err) {
       console.error('Erro ao carregar dados da agenda:', err);
     } finally {
@@ -138,15 +125,20 @@ export const Agenda: React.FC = () => {
     });
   };
 
-  const handleCreateAppointment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !selectedPatientId || isSubmitting) return;
+  const handleCreateAppointment = async (data: {
+    patientId: string;
+    date: string;
+    time: string;
+    duration: number;
+    notes: string;
+  }) => {
+    if (!user || isSubmitting) return;
 
     setIsSubmitting(true);
     try {
-      const dateTimeString = `${appDate}T${appTime}:00`;
+      const dateTimeString = `${data.date}T${data.time}:00`;
       const newStart = new Date(dateTimeString);
-      const newEnd = new Date(newStart.getTime() + appDuration * 60000);
+      const newEnd = new Date(newStart.getTime() + data.duration * 60000);
 
       // Verifica colisão de horários
       const hasOverlap = appointments.some(app => {
@@ -156,9 +148,6 @@ export const Agenda: React.FC = () => {
         const appStart = new Date(app.date_time);
         const appEnd = new Date(appStart.getTime() + (app.duration_minutes || 50) * 60000);
 
-        // A overlap condition is when newStart < appEnd AND newEnd > appStart
-        // But what if newStart matches exactly with appStart? That's an overlap.
-        // Let's make sure it handles identical start times directly too.
         if (newStart.getTime() === appStart.getTime()) return true;
 
         return newStart < appEnd && newEnd > appStart;
@@ -172,14 +161,13 @@ export const Agenda: React.FC = () => {
 
       await api.createAppointment({
         professional_id: user.id,
-        patient_id: selectedPatientId,
+        patient_id: data.patientId,
         date_time: newStart.toISOString(),
-        duration_minutes: appDuration,
+        duration_minutes: data.duration,
         status: 'scheduled',
-        notes: appNotes || undefined,
+        notes: data.notes || undefined,
       });
       setIsAppointmentModalOpen(false);
-      setAppNotes('');
       addToast('Consulta agendada com sucesso!', 'success');
       loadData();
     } catch (err) {
@@ -223,21 +211,10 @@ export const Agenda: React.FC = () => {
 
   // Função para abrir o WhatsApp Web para enviar o lembrete
   const handleSendWhatsAppReminder = (app: Appointment) => {
-    if (!app.patient) return;
-    const phoneDigits = app.patient.phone?.replace(/\D/g, '') || '';
-    if (!phoneDigits) {
+    const success = sendWhatsAppReminder(app, user?.name);
+    if (!success) {
       addToast('Este paciente não possui telefone cadastrado.', 'warning');
-      return;
     }
-
-    const appDateObj = new Date(app.date_time);
-    const dateFormatted = appDateObj.toLocaleDateString('pt-BR');
-    const timeFormatted = appDateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-
-    const message = `Olá, ${app.patient.name}! Confirmamos a sua consulta com ${user?.name} no dia ${dateFormatted} às ${timeFormatted}. Se precisar remarcar, por favor nos avise. Até breve!`;
-    const encodedText = encodeURIComponent(message);
-    
-    window.open(`https://web.whatsapp.com/send?phone=55${phoneDigits}&text=${encodedText}`, '_blank');
   };
 
   const getStatusBadge = (status: Appointment['status']) => {
@@ -274,10 +251,7 @@ export const Agenda: React.FC = () => {
               </div>
             </div>
 
-            <button className="btn btn-primary" onClick={() => {
-              setAppDate(selectedDate.toISOString().split('T')[0]);
-              setIsAppointmentModalOpen(true);
-            }}>
+            <button className="btn btn-primary" onClick={() => setIsAppointmentModalOpen(true)}>
               <Plus size={18} />
               <span>Agendar Sessão</span>
             </button>
@@ -348,10 +322,7 @@ export const Agenda: React.FC = () => {
             <div className="empty-day-state">
               <CalendarIcon size={32} className="empty-day-icon" />
               <p>Nenhuma consulta agendada para este dia.</p>
-              <button className="btn btn-secondary btn-sm" onClick={() => {
-                setAppDate(selectedDate.toISOString().split('T')[0]);
-                setIsAppointmentModalOpen(true);
-              }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setIsAppointmentModalOpen(true)}>
                 Agendar para hoje
               </button>
             </div>
@@ -400,534 +371,27 @@ export const Agenda: React.FC = () => {
       </div>
 
       {/* MODAL: MARCAR CONSULTA */}
-      {isAppointmentModalOpen && (
-        <Portal>
-          <div className="modal-overlay">
-            <div className="modal-content animate-slide-up">
-              <div className="modal-header">
-                <h3>Marcar Consulta / Sessão</h3>
-                <button className="close-modal-btn" onClick={() => setIsAppointmentModalOpen(false)}>
-                  <X size={20} />
-                </button>
-              </div>
-              <form onSubmit={handleCreateAppointment}>
-                <div className="modal-body">
-                  {patients.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '20px' }}>
-                      <p style={{ color: 'var(--text-muted)', marginBottom: '16px' }}>
-                        É necessário ter pelo menos um paciente cadastrado para realizar agendamentos.
-                      </p>
-                      <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                        Cadastre o paciente primeiro na aba de Pacientes!
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="form-group">
-                        <label className="form-label">Selecione o Paciente</label>
-                        <select 
-                          className="form-control"
-                          value={selectedPatientId}
-                          onChange={(e) => setSelectedPatientId(e.target.value)}
-                          required
-                        >
-                          <option value="">Selecione...</option>
-                          {patients.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="grid grid-2 gap-4">
-                        <div className="form-group">
-                          <label className="form-label">Data da Consulta</label>
-                          <input 
-                            type="date" 
-                            className="form-control" 
-                            value={appDate}
-                            onChange={(e) => setAppDate(e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">Horário de Início</label>
-                          <input 
-                            type="time" 
-                            className="form-control" 
-                            value={appTime}
-                            onChange={(e) => setAppTime(e.target.value)}
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Duração Estimada (minutos)</label>
-                        <select 
-                          className="form-control"
-                          value={appDuration}
-                          onChange={(e) => setAppDuration(Number(e.target.value))}
-                        >
-                          <option value={30}>30 minutos</option>
-                          <option value={45}>45 minutos</option>
-                          <option value={50}>50 minutos (Padrão)</option>
-                          <option value={60}>60 minutos / 1 hora</option>
-                          <option value={90}>90 minutos</option>
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Queixas Clínicas / Notas do Agendamento</label>
-                        <textarea 
-                          className="form-control" 
-                          rows={3} 
-                          placeholder="Ex: Primeira consulta, alinhar metas..."
-                          value={appNotes}
-                          onChange={(e) => setAppNotes(e.target.value)}
-                        />
-                      </div>
-                    </>
-                  )}
-                </div>
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setIsAppointmentModalOpen(false)}>
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn btn-primary" 
-                    disabled={patients.length === 0 || isSubmitting}
-                  >
-                    {isSubmitting ? 'Agendando...' : 'Salvar Consulta'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </Portal>
-      )}
+      <AppointmentModal
+        isOpen={isAppointmentModalOpen}
+        onClose={() => setIsAppointmentModalOpen(false)}
+        patients={patients}
+        isSubmitting={isSubmitting}
+        initialDate={selectedDate.toISOString().split('T')[0]}
+        onSubmit={handleCreateAppointment}
+      />
 
       {/* MODAL: DETALHES E AÇÕES DA CONSULTA */}
-      {isDetailModalOpen && selectedAppointment && (
-        <Portal>
-          <div className="modal-overlay">
-            <div className="modal-content animate-slide-up" style={{ maxWidth: '450px' }}>
-              <div className="modal-header">
-                <h3>Detalhes da Consulta</h3>
-                <button className="close-modal-btn" onClick={() => setIsDetailModalOpen(false)}>
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="modal-body">
-                <div className="detail-profile-block">
-                  <div className="avatar-circle">
-                    {selectedAppointment.patient?.name.charAt(0).toUpperCase()}
-                  </div>
-                  <h4>{selectedAppointment.patient?.name}</h4>
-                  {getStatusBadge(selectedAppointment.status)}
-                </div>
+      <AppointmentDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        appointment={selectedAppointment}
+        onUpdateStatus={handleUpdateStatus}
+        onSendWhatsApp={handleSendWhatsAppReminder}
+        onDelete={handleDeleteAppointment}
+        getStatusBadge={getStatusBadge}
+      />
 
-                <div className="detail-list" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)' }}>
-                    <Clock size={16} />
-                    <span style={{ fontSize: '0.9rem' }}>
-                      {new Date(selectedAppointment.date_time).toLocaleDateString('pt-BR')} às {new Date(selectedAppointment.date_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ({selectedAppointment.duration_minutes} min)
-                    </span>
-                  </div>
-                  {selectedAppointment.patient?.phone && (
-                    <div style={{ display: 'flex', gap: '8px', color: 'var(--text-muted)' }}>
-                      <Phone size={16} />
-                      <span style={{ fontSize: '0.9rem' }}>{selectedAppointment.patient.phone}</span>
-                    </div>
-                  )}
-                  {selectedAppointment.notes && (
-                    <div style={{ background: 'var(--bg-main)', padding: '12px', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', color: 'var(--text-muted)', borderLeft: '3px solid var(--primary-light)' }}>
-                      <strong>Observações:</strong>
-                      <p style={{ marginTop: '4px' }}>{selectedAppointment.notes}</p>
-                    </div>
-                  )}
-                </div>
 
-                <hr style={{ margin: '20px 0', borderColor: 'var(--border-color)' }} />
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <span className="form-label" style={{ fontSize: '0.75rem' }}>Alterar Status do Atendimento</span>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    <button 
-                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'completed')}
-                      className="btn btn-secondary btn-sm"
-                      style={{ color: 'var(--success)' }}
-                    >
-                      <CheckCircle size={14} /> Realizado
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'no_show')}
-                      className="btn btn-secondary btn-sm"
-                      style={{ color: 'var(--warning)' }}
-                    >
-                      <AlertTriangle size={14} /> Falta / No-Show
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'canceled')}
-                      className="btn btn-secondary btn-sm"
-                      style={{ color: 'var(--error)' }}
-                    >
-                      <XCircle size={14} /> Cancelar
-                    </button>
-                    <button 
-                      onClick={() => handleUpdateStatus(selectedAppointment.id, 'scheduled')}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      Agendado
-                    </button>
-                  </div>
-
-                  <hr style={{ margin: '10px 0', borderColor: 'var(--border-color)' }} />
-
-                  <button 
-                    onClick={() => handleSendWhatsAppReminder(selectedAppointment)}
-                    className="btn btn-primary"
-                    style={{ width: '100%', backgroundColor: '#25d366', borderColor: '#25d366', color: 'white', boxShadow: 'none' }}
-                  >
-                    <MessageSquare size={16} /> Lembrete WhatsApp
-                  </button>
-                  
-                  <button 
-                    onClick={() => handleDeleteAppointment(selectedAppointment.id)}
-                    className="btn btn-danger"
-                    style={{ width: '100%' }}
-                  >
-                    <Trash2 size={16} /> Excluir Agendamento
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </Portal>
-      )}
-
-      <style>{`
-        .agenda-page {
-          width: 100%;
-        }
-
-        .agenda-grid {
-          display: grid;
-          grid-template-columns: 1fr 340px;
-          gap: 32px;
-          align-items: start;
-        }
-
-        /* Calendário Principal */
-        .calendar-main {
-          padding: 24px;
-        }
-
-        .calendar-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .calendar-title-nav {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .calendar-month-year {
-          font-size: 1.4rem;
-          font-weight: 700;
-          text-transform: capitalize;
-        }
-
-        .nav-buttons {
-          display: flex;
-          gap: 4px;
-        }
-
-        .btn-icon {
-          background: transparent;
-          border: 1px solid var(--border-color);
-          border-radius: var(--radius-sm);
-          padding: 6px;
-          cursor: pointer;
-          color: var(--text-muted);
-          transition: var(--transition-fast);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .btn-icon:hover {
-          background-color: var(--bg-hover);
-          color: var(--primary);
-          border-color: var(--primary-light);
-        }
-
-        .calendar-grid-header {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          text-align: center;
-          font-weight: 600;
-          color: var(--text-muted);
-          font-size: 0.85rem;
-          margin-bottom: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .calendar-grid-body {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          grid-auto-rows: minmax(110px, auto);
-          border-left: 1px solid var(--border-color);
-          border-top: 1px solid var(--border-color);
-        }
-
-        .calendar-cell {
-          background-color: var(--bg-card);
-          border-right: 1px solid var(--border-color);
-          border-bottom: 1px solid var(--border-color);
-          padding: 8px;
-          cursor: pointer;
-          transition: var(--transition-fast);
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          position: relative;
-        }
-
-        .calendar-cell:hover {
-          background-color: var(--bg-hover);
-        }
-
-        .calendar-cell.outside-month {
-          background-color: #fafbfb;
-          color: #c3cfc7;
-        }
-
-        .calendar-cell.selected {
-          box-shadow: inset 0 0 0 2px var(--primary);
-          z-index: 10;
-        }
-
-        .calendar-cell.today {
-          background-color: #f1f7f2;
-        }
-
-        .calendar-cell.today .day-number {
-          background-color: var(--primary);
-          color: white;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-        }
-
-        .day-number {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--text-main);
-          align-self: flex-start;
-        }
-
-        .outside-month .day-number {
-          color: #c3cfc7;
-        }
-
-        .cell-appointments {
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-          flex: 1;
-          overflow-y: hidden;
-        }
-
-        .cell-app-bullet {
-          font-size: 0.72rem;
-          font-weight: 600;
-          padding: 3px 6px;
-          border-radius: 4px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          width: 100%;
-          border-left: 3px solid transparent;
-        }
-
-        .cell-app-bullet.app-scheduled {
-          background-color: var(--info-bg);
-          color: var(--info);
-          border-left-color: var(--info);
-        }
-
-        .cell-app-bullet.app-completed {
-          background-color: var(--success-bg);
-          color: var(--success);
-          border-left-color: var(--success);
-        }
-
-        .cell-app-bullet.app-canceled {
-          background-color: var(--error-bg);
-          color: var(--error);
-          border-left-color: var(--error);
-        }
-
-        .cell-app-bullet.app-no_show {
-          background-color: var(--warning-bg);
-          color: var(--warning);
-          border-left-color: var(--warning);
-        }
-
-        .more-apps-indicator {
-          font-size: 0.65rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          margin-top: 2px;
-          align-self: center;
-        }
-
-        /* Consultas do Dia (Lado Direito) */
-        .agenda-day-details {
-          padding: 24px;
-          min-height: 480px;
-        }
-
-        .day-header {
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 16px;
-          margin-bottom: 20px;
-        }
-
-        .day-header h3 {
-          font-size: 1.15rem;
-        }
-
-        .selected-day-lbl {
-          font-size: 0.82rem;
-          color: var(--primary);
-          font-weight: 600;
-          text-transform: capitalize;
-        }
-
-        .empty-day-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 300px;
-          text-align: center;
-          color: var(--text-muted);
-          gap: 12px;
-        }
-
-        .empty-day-icon {
-          color: var(--border-color-hover);
-        }
-
-        .day-appointments-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .day-app-card {
-          padding: 16px;
-          background-color: var(--bg-main);
-          border-radius: var(--radius-md);
-          border-left: 4px solid var(--border-color);
-          cursor: pointer;
-          transition: var(--transition-smooth);
-        }
-
-        .day-app-card:hover {
-          transform: translateX(3px);
-          background-color: #ebf1ec;
-        }
-
-        .status-border-scheduled { border-left-color: var(--info); }
-        .status-border-completed { border-left-color: var(--success); }
-        .status-border-canceled { border-left-color: var(--error); }
-        .status-border-no_show { border-left-color: var(--warning); }
-
-        .day-app-time {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.78rem;
-          color: var(--text-muted);
-          margin-bottom: 8px;
-        }
-
-        .day-app-patient {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 12px;
-        }
-
-        .patient-avatar-icon {
-          color: var(--primary);
-        }
-
-        .day-app-patient h4 {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: var(--text-main);
-        }
-
-        .day-app-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .day-app-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .action-icon-btn {
-          border: 1px solid var(--border-color);
-          background-color: white;
-          padding: 6px;
-          border-radius: var(--radius-sm);
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-muted);
-          transition: var(--transition-fast);
-        }
-
-        .action-icon-btn:hover {
-          color: var(--primary);
-          border-color: var(--primary-light);
-          background-color: var(--bg-hover);
-        }
-
-        .action-icon-btn.whatsapp-color:hover {
-          background-color: #eafbee;
-          color: #25d366;
-          border-color: rgba(37, 211, 102, 0.3);
-        }
-
-        .detail-profile-block {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          text-align: center;
-        }
-
-        @media (max-width: 992px) {
-          .agenda-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
     </div>
   );
 };

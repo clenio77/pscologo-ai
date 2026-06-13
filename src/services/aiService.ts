@@ -1,16 +1,25 @@
 import { GoogleGenAI } from '@google/genai';
 import type { Patient, Evolution, PatientForm, PatientTest } from './api';
+import { supabase, isSupabaseConfigured } from './supabaseClient';
 
+// AVISO DE SEGURANÇA: Chaves de API expostas no client-side podem ser extraídas do bundle.
+// Em ambiente de produção, esta chamada é feita via Supabase Edge Function ('gemini') para máxima segurança.
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
-// Inicializa o GenAI apenas se a chave estiver presente
+// Inicializa o GenAI apenas se a chave estiver presente para uso como fallback em dev
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 // Tipos de Análise
 export type AnalysisType = 'freud' | 'tcc' | 'rogers' | 'synthesis';
 
+interface AnonymizedData {
+  anamnesis: string;
+  clinicalHistory: string;
+  age: number | string;
+}
+
 // Helpers de Anonimização
-const anonymizeData = (patient: Patient, forms: PatientForm[], evolutions: Evolution[]) => {
+const anonymizeData = (patient: Patient, forms: PatientForm[], evolutions: Evolution[]): AnonymizedData => {
   // Substitui nome real por "[PACIENTE]"
   const clinicalHistory = evolutions.map(e => `Data: ${new Date(e.session_date).toLocaleDateString()} - Relato: ${e.content}`).join('\n\n');
   
@@ -32,7 +41,7 @@ const anonymizeData = (patient: Patient, forms: PatientForm[], evolutions: Evolu
   };
 };
 
-const getPromptForType = (type: AnalysisType, data: any): string => {
+const getPromptForType = (type: AnalysisType, data: AnonymizedData): string => {
   const baseContext = `
 Você é um assistente de inteligência artificial atuando como um Supervisor Clínico em Psicologia.
 Sua função é auxiliar o terapeuta (psicólogo) analisando dados clínicos de forma reflexiva e teórica.
@@ -91,36 +100,89 @@ Esta síntese serve como um resumo executivo para o prontuário. Seja conciso e 
   }
 };
 
+/**
+ * Helper centralizado para chamar a API da Gemini.
+ * Tenta primeiro via Supabase Edge Function (método seguro de produção).
+ * Se o Supabase não estiver configurado ou ocorrer algum erro, tenta usar a chave local do client-side como fallback de dev.
+ */
+const callGemini = async (
+  prompt: string, 
+  options: { model?: string; temperature?: number; responseMimeType?: string }
+): Promise<string> => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.functions.invoke('gemini', {
+        body: {
+          prompt,
+          model: options.model,
+          temperature: options.temperature,
+          responseMimeType: options.responseMimeType
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && typeof data.text === 'string') {
+        return data.text;
+      }
+      
+      throw new Error('A Edge Function retornou um payload sem o campo "text".');
+    } catch (edgeError) {
+      console.warn('Erro ao chamar Supabase Edge Function. Tentando fallback local com VITE_GEMINI_API_KEY...', edgeError);
+      if (ai) {
+        return await callGeminiLocal(prompt, options);
+      }
+      throw new Error('Falha na comunicação com a Edge Function do Supabase e nenhum fallback local configurado.');
+    }
+  }
+
+  if (ai) {
+    return await callGeminiLocal(prompt, options);
+  }
+
+  throw new Error('Nenhum método de comunicação com a IA configurado (Supabase ausente e VITE_GEMINI_API_KEY não informada).');
+};
+
+const callGeminiLocal = async (
+  prompt: string, 
+  options: { model?: string; temperature?: number; responseMimeType?: string }
+): Promise<string> => {
+  if (!ai) {
+    throw new Error('Cliente local do Gemini não está inicializado.');
+  }
+
+  const response = await ai.models.generateContent({
+    model: options.model || 'gemini-2.5-flash',
+    contents: prompt,
+    config: {
+      temperature: options.temperature ?? 0.2,
+      responseMimeType: options.responseMimeType,
+    }
+  });
+
+  if (!response.text) {
+    throw new Error('Resposta vazia do modelo local da Gemini.');
+  }
+
+  return response.text;
+};
+
 export const generateAnalysis = async (
   type: AnalysisType,
   patient: Patient,
   forms: PatientForm[],
   evolutions: Evolution[]
 ): Promise<string> => {
-  if (!ai) {
-    throw new Error('Chave da API do Gemini (VITE_GEMINI_API_KEY) não configurada no .env.local');
-  }
-
   const anonymizedData = anonymizeData(patient, forms, evolutions);
   const prompt = getPromptForType(type, anonymizedData);
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.3,
-      }
-    });
-
-    if (!response.text) {
-      throw new Error('Resposta vazia da IA.');
-    }
-    
-    return response.text;
+    return await callGemini(prompt, { model: 'gemini-2.5-flash', temperature: 0.3 });
   } catch (error) {
     console.error('Erro ao gerar análise com IA:', error);
-    throw new Error('Falha ao comunicar com o Google Gemini. Verifique sua chave de API e a conexão de rede.');
+    throw new Error('Falha ao comunicar com a IA. Verifique as configurações de chave e rede.');
   }
 };
 
@@ -139,10 +201,6 @@ export const generateProgressRadar = async (
   patient: Patient,
   evolutions: Evolution[]
 ): Promise<ProgressDimension[]> => {
-  if (!ai) {
-    throw new Error('Chave da API do Gemini não configurada.');
-  }
-
   if (evolutions.length < 2) {
     throw new Error('São necessárias pelo menos 2 sessões para avaliar o progresso.');
   }
@@ -150,12 +208,23 @@ export const generateProgressRadar = async (
   // Sort evolutions chronologically
   const sorted = [...evolutions].sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
   
-  const firstSessions = sorted.slice(0, 2).map(e => `Data: ${e.session_date}\nConteúdo: ${e.content}`).join('\n\n');
-  const recentSessions = sorted.slice(-2).map(e => `Data: ${e.session_date}\nConteúdo: ${e.content}`).join('\n\n');
+  // Anonimização do nome do paciente nas sessões
+  const firstName = patient.name.split(' ')[0];
+  const regexName = new RegExp(firstName, 'gi');
+
+  const firstSessions = sorted.slice(0, 2).map(e => {
+    const content = e.content.replace(regexName, '[PACIENTE]');
+    return `Data: ${e.session_date}\nConteúdo: ${content}`;
+  }).join('\n\n');
+
+  const recentSessions = sorted.slice(-2).map(e => {
+    const content = e.content.replace(regexName, '[PACIENTE]');
+    return `Data: ${e.session_date}\nConteúdo: ${content}`;
+  }).join('\n\n');
 
   const prompt = `
 Você é um assistente de inteligência artificial atuando como psicólogo clínico.
-O objetivo é avaliar o progresso terapêutico do paciente (${patient.name}) comparando as primeiras sessões com as sessões mais recentes.
+O objetivo é avaliar o progresso terapêutico do paciente ([PACIENTE]) comparando as primeiras sessões com as sessões mais recentes.
 
 PRIMEIRAS SESSÕES:
 ${firstSessions}
@@ -187,20 +256,13 @@ Formato esperado:
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const responseText = await callGemini(prompt, {
       model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-      }
+      temperature: 0.2,
+      responseMimeType: 'application/json',
     });
 
-    if (!response.text) {
-      throw new Error('Resposta vazia da IA.');
-    }
-
-    const parsed = JSON.parse(response.text) as ProgressDimension[];
+    const parsed = JSON.parse(responseText) as ProgressDimension[];
     return parsed;
   } catch (error) {
     console.error('Erro ao gerar radar de progresso:', error);
@@ -234,10 +296,6 @@ export const generateSentimentAnalysis = async (
   patient: Patient,
   evolutions: Evolution[]
 ): Promise<SessionSentiment[]> => {
-  if (!ai) {
-    throw new Error('Chave da API do Gemini (VITE_GEMINI_API_KEY) não configurada no .env');
-  }
-
   if (evolutions.length === 0) {
     throw new Error('Nenhuma sessão registrada para análise de sentimento.');
   }
@@ -278,24 +336,17 @@ FORMATO DE RESPOSTA (JSON array):
 `;
 
   try {
-    const response = await ai.models.generateContent({
+    const responseText = await callGemini(prompt, {
       model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-      }
+      temperature: 0.2,
+      responseMimeType: 'application/json',
     });
 
-    if (!response.text) {
-      throw new Error('Resposta vazia da IA.');
-    }
-
-    const parsed = JSON.parse(response.text) as SessionSentiment[];
+    const parsed = JSON.parse(responseText) as SessionSentiment[];
     return parsed;
   } catch (error) {
     console.error('Erro ao gerar análise de sentimento:', error);
-    throw new Error('Falha ao gerar análise de sentimento. Verifique sua chave de API.');
+    throw new Error('Falha ao gerar análise de sentimento.');
   }
 };
 
@@ -317,21 +368,30 @@ export const generateCFPDocument = async (
   evolutions: Evolution[],
   tests: PatientTest[]
 ): Promise<CFPDocumentDraft> => {
-  if (!ai) {
-    throw new Error('Chave da API do Gemini não configurada.');
-  }
-
   if (type === 'declaracao') {
     return {};
   }
 
   const sorted = [...evolutions].sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime());
-  const sessionsContext = sorted.map((e, i) => `Sessão ${i+1} (${e.session_date}): ${e.content}`).join('\n\n');
-  const testsContext = tests.map(t => `Teste: ${t.test_name} (Data: ${t.application_date})\nObjetivo: ${t.objective}\nResultados: ${t.results_summary}`).join('\n\n');
+  
+  // Anonimização do nome do paciente nas sessões e testes
+  const firstName = patient.name.split(' ')[0];
+  const regexName = new RegExp(firstName, 'gi');
+
+  const sessionsContext = sorted.map((e, i) => {
+    const content = e.content.replace(regexName, '[PACIENTE]');
+    return `Sessão ${i+1} (${e.session_date}): ${content}`;
+  }).join('\n\n');
+
+  const testsContext = tests.map(t => {
+    const objective = (t.objective || '').replace(regexName, '[PACIENTE]');
+    const resultsSummary = (t.results_summary || '').replace(regexName, '[PACIENTE]');
+    return `Teste: ${t.test_name} (Data: ${t.application_date})\nObjetivo: ${objective}\nResultados: ${resultsSummary}`;
+  }).join('\n\n');
 
   let prompt = `
 Você é um psicólogo clínico elaborando um documento oficial baseado na Resolução CFP nº 06/2019.
-O paciente é ${patient.name}.
+O paciente é referenciado como [PACIENTE].
 Você deve redigir os campos solicitados de forma estritamente profissional, impessoal e técnica.
 NUNCA transcreva as sessões literalmente. Agrupe as informações em uma síntese clínica sistêmica.
 
@@ -369,20 +429,13 @@ Retorne um JSON: { "procedimento": "...", "analise": "...", "conclusao": "..." }
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const responseText = await callGemini(prompt, {
       model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.2,
-        responseMimeType: 'application/json',
-      }
+      temperature: 0.2,
+      responseMimeType: 'application/json',
     });
 
-    if (!response.text) {
-      throw new Error('Resposta vazia da IA.');
-    }
-
-    return JSON.parse(response.text) as CFPDocumentDraft;
+    return JSON.parse(responseText) as CFPDocumentDraft;
   } catch (error) {
     console.error('Erro ao gerar rascunho de documento:', error);
     throw new Error('Falha ao gerar documento oficial.');

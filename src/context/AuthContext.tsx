@@ -30,6 +30,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [supabaseError, setSupabaseError] = useState<string | null>(null);
 
+  // Mantém uma referência mutável do usuário atual para evitar re-subscrições no onAuthStateChange
+  const currentUserRef = React.useRef<ProfessionalProfile | null>(null);
+  useEffect(() => {
+    currentUserRef.current = user;
+  }, [user]);
+
   // Função para buscar dados da tabela profiles
   const fetchProfile = async (supabaseUser: User) => {
     try {
@@ -42,23 +48,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('Erro ao buscar perfil da tabela profiles:', error);
         // Caso ocorra erro (por exemplo, trigger do banco não executou), cria um perfil provisório
-        setUser({
+        const provisionalUser = {
           id: supabaseUser.id,
           email: supabaseUser.email || '',
           name: supabaseUser.user_metadata?.name || 'Profissional',
           specialty: supabaseUser.user_metadata?.specialty || 'Psicologia',
           register_number: supabaseUser.user_metadata?.register_number || undefined,
           phone: supabaseUser.user_metadata?.phone || undefined,
-        });
+        };
+        setUser(provisionalUser);
+        currentUserRef.current = provisionalUser;
       } else if (data) {
-        setUser({
+        const activeUser = {
           id: data.id,
           email: supabaseUser.email || '',
           name: data.name,
           specialty: data.specialty || 'Psicologia',
           register_number: data.register_number || undefined,
           phone: data.phone || undefined,
-        });
+        };
+        setUser(activeUser);
+        currentUserRef.current = activeUser;
       }
     } catch (err) {
       console.error('Erro no fetchProfile:', err);
@@ -68,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
 
-    // Modo Supabase Real com Timeout de Segurança de 4 segundos
+    // Modo Supabase Real com Timeout de Segurança de 10 segundos
     const initAuth = async () => {
       try {
         const sessionPromise = supabase.auth.getSession();
@@ -85,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await fetchProfile(session.user);
         } else {
           setUser(null);
+          currentUserRef.current = null;
         }
       } catch (err) {
         console.error('Erro ao buscar sessão inicial do Supabase:', err);
@@ -101,21 +112,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
 
     // Ouvinte de mudanças na autenticação do Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
-      setLoading(true);
-      try {
-        if (session?.user) {
+      
+      console.log(`[AuthContext] Evento de autenticação disparado: ${event}`);
+
+      // Caso seja logout, limpa o estado imediatamente
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        currentUserRef.current = null;
+        setLoading(false);
+        return;
+      }
+
+      if (session?.user) {
+        // Se o usuário na sessão for o mesmo que já temos em cache, não faz nada
+        if (currentUserRef.current && currentUserRef.current.id === session.user.id) {
+          return;
+        }
+
+        // Se não houver usuário ativo na memória, é o login inicial. Bloqueamos a tela.
+        // Se já houver um usuário ativo, a renovação de token ocorre de forma silenciosa.
+        const shouldShowLoading = !currentUserRef.current;
+        if (shouldShowLoading) {
+          setLoading(true);
+        }
+
+        try {
           await fetchProfile(session.user);
-        } else {
-          setUser(null);
+        } catch (err) {
+          console.error('Erro ao renovar perfil em onAuthStateChange:', err);
+        } finally {
+          if (isMounted) {
+            setLoading(false);
+          }
         }
-      } catch (err) {
-        console.error('Erro ao processar mudanca de estado de auth:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      } else {
+        setUser(null);
+        currentUserRef.current = null;
+        setLoading(false);
       }
     });
 

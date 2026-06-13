@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import type { Appointment } from '../services/api';
+import { sendWhatsAppReminder } from '../utils/whatsapp';
 import { 
   Users, 
   Calendar as CalendarIcon, 
@@ -90,16 +91,10 @@ export const Dashboard: React.FC = () => {
   }, [loadDashboardData]);
 
   const handleSendWhatsAppReminder = (app: Appointment) => {
-    if (!app.patient) return;
-    const phoneDigits = app.patient.phone?.replace(/\D/g, '') || '';
-    if (!phoneDigits) {
+    const success = sendWhatsAppReminder(app, user?.name);
+    if (!success) {
       addToast('Este paciente não possui telefone cadastrado.', 'warning');
-      return;
     }
-
-    const appTime = new Date(app.date_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const message = `Olá, ${app.patient.name}! Passando para confirmar nossa consulta de hoje às ${appTime}. Até logo!`;
-    window.open(`https://web.whatsapp.com/send?phone=55${phoneDigits}&text=${encodeURIComponent(message)}`, '_blank');
   };
 
   return (
